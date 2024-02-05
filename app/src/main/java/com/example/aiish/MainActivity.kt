@@ -7,6 +7,7 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
 //import com.google.android.material.navigation.NavigationView
@@ -15,6 +16,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
@@ -95,7 +97,7 @@ class MainActivity : ComponentActivity() {
     var selectedLanguage = "Choose language";
     private lateinit var webView: WebView
     private var progressDialog: ProgressDialog? = null
-    var ReadyFlag=true;
+    var ReadyFlag=false;
     private lateinit var cameraActivityResultLauncher: ActivityResultLauncher<Intent>
     private var imageUri: Uri? = null
     private lateinit var interpretButton: Button
@@ -122,7 +124,27 @@ class MainActivity : ComponentActivity() {
     private var mStringRequest: StringRequest? = null
     lateinit var mGoogleSignInClient: GoogleSignInClient
 
+    val sessionMsg = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val sms = intent.extras?.getString("session_message")
+            println("session Messagekdcnnjndcjndjnjcdnjcdnjc");
+            if(sms=="ready")
+            {
 
+                if(remainingWordCount>0)
+                {
+                    ReadyFlag=true;
+                    var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
+                    tv_Speech_to_text?.setText(sanitizeText(Transcribetext));
+                    tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
+                    tv_Speech_to_text?.visibility=View.VISIBLE;
+                    val jsCode = "sendMessage(\"${Transcribetext}\")";
+                    println(jsCode);
+                    webView.evaluateJavascript(jsCode, null)
+                }
+            }
+        }
+    }
 
     private fun getProfilePicUri(): String? {
         Bugfender.d("MainActivity","getProfilePicUri");
@@ -360,7 +382,7 @@ class MainActivity : ComponentActivity() {
         deviceId= secureTokenManager.loadId().toString();
         userEmail=secureTokenManager.loadEmail().toString()
         token=secureTokenManager.loadToken().toString();
-        //
+        registerReceiver(sessionMsg, IntentFilter("session_message"))
         if (config.smallestScreenWidthDp >= 600) {
             isTablet=true;
             setContentView(com.example.aiish.R.layout.mainactivity_tablet)
@@ -501,7 +523,7 @@ class MainActivity : ComponentActivity() {
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidInterface")
         if(isTablet) {
-            webView.setInitialScale(465);
+            webView.setInitialScale(310);
         }
 
         println("vanakaaaaaaam")
@@ -959,7 +981,7 @@ class MainActivity : ComponentActivity() {
                         for(word in words) {
                             for (char in word) {
                                 if (isAscii(char)) {
-                                    englishNote.setText("Note:Please choose english as language to interpret english words.")
+                                    englishNote.setText("Note: Kannada language is choosen. Please type Kannada sentences.")
                                     englishNote.visibility=View.VISIBLE;
                                     interpretButton.isEnabled = false
                                     break;
@@ -1186,16 +1208,21 @@ class MainActivity : ComponentActivity() {
                     var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
                     if (!ReadyFlag) {
                         tv_Speech_to_text?.setText("Please wait the model is loading...!")
+//                        val redColor = 0xFF0000 // Red color in hexadecimal
+                        tv_Speech_to_text?.setTextColor(Color.parseColor("#FF000"))
                     } else {
                         tv_Speech_to_text?.setText(ftext);
+                        tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
                         tv_Speech_to_text?.visibility = View.VISIBLE;
+
+                        //val jsCode = "sendMessage('${ftext}');"
+                        val jsCode = "sendMessage(\"${ftext}\")";
+                        println(jsCode);
+                        webView.evaluateJavascript(jsCode, null)
                     }
-                    //val jsCode = "sendMessage('${ftext}');"
-                    val jsCode = "sendMessage(\"${ftext}\")";
-                    println(jsCode);
-                    webView.evaluateJavascript(jsCode, null)
                 }
-            } else {
+            }
+            else {
                 Bugfender.d("EditText",editText.text.toString());
                 println(editText.text);
                 Transcribetext = editText.text.toString();
@@ -1205,36 +1232,88 @@ class MainActivity : ComponentActivity() {
                 var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
                 var sanitized_text="";
                 println("wefhibgufhdvbhfdbhjbhjsd");
+                sanitized_text=sanitizeText(ftext)
                 if (!ReadyFlag) {
+                    Transcribetext=sanitized_text;
                     println("djncjsdjcsbdhjbsjhbs")
                     tv_Speech_to_text?.setText("Please wait the model is loading...!")
+                    tv_Speech_to_text?.setTextColor(Color.parseColor("#FF0000"))
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 } else {
                     sanitized_text=sanitizeText(ftext)
+                    tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
                     tv_Speech_to_text?.setText(sanitized_text);
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 }
-
-                if(sanitized_text!=ftext.toLowerCase())
+                if(ReadyFlag)
                 {
-                    println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
-                    println(sanitized_text)
-                    println(ftext);
-                    var errortext="Exclude inappropriate words for interpretation."
-                    val jsCode = "sendMessage(\"${errortext}\")";
-                    println(jsCode);
-                    webView.evaluateJavascript(jsCode, null)
-                    dialog.dismiss()
-                }
-                else{
+                    if(sanitized_text!=ftext.toLowerCase())
+                    {
+                        println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
+                        println(sanitized_text)
+                        println(ftext);
+                        var errortext="Exclude inappropriate words for interpretation."
+                        val jsCode = "sendMessage(\"${errortext}\")";
+                        println(jsCode);
+                        webView.evaluateJavascript(jsCode, null)
+                        dialog.dismiss()
+                    }
+                    else{
 
-                    println(sanitized_text)
-                    println(ftext);
-                    val jsCode = "sendMessage(\"${ftext}\")";
-                    println(jsCode);
-                    webView.evaluateJavascript(jsCode, null)
-                    dialog.dismiss()
+                        println(sanitized_text)
+                        println(ftext);
+                        val jsCode = "sendMessage(\"${ftext}\")";
+                        println(jsCode);
+                        webView.evaluateJavascript(jsCode, null)
+                        dialog.dismiss()
+                    }
                 }
+                else
+                {
+                    if(sanitized_text!=ftext.toLowerCase())
+                    {
+                        println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
+                        println(sanitized_text)
+                        println(ftext);
+                        var errortext="Exclude inappropriate words for interpretation."
+                        Transcribetext="Exclude inappropriate words for interpretation."
+//                        val jsCode = "sendMessage(\"${errortext}\")";
+//                        println(jsCode);
+//                        webView.evaluateJavascript(jsCode, null)
+                        dialog.dismiss()
+                    }
+                    else{
+
+                        println(sanitized_text)
+                        println(ftext);
+                        Transcribetext=sanitized_text
+//                        val jsCode = "sendMessage(\"${ftext}\")";
+//                        println(jsCode);
+//                        webView.evaluateJavascript(jsCode, null)
+                        dialog.dismiss()
+                    }
+                }
+
+//                if(sanitized_text!=ftext.toLowerCase())
+//                {
+//                    println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
+//                    println(sanitized_text)
+//                    println(ftext);
+//                    var errortext="Exclude inappropriate words for interpretation."
+//                    val jsCode = "sendMessage(\"${errortext}\")";
+//                    println(jsCode);
+//                    webView.evaluateJavascript(jsCode, null)
+//                    dialog.dismiss()
+//                }
+//                else{
+//
+//                    println(sanitized_text)
+//                    println(ftext);
+//                    val jsCode = "sendMessage(\"${ftext}\")";
+//                    println(jsCode);
+//                    webView.evaluateJavascript(jsCode, null)
+//                    dialog.dismiss()
+//                }
 
             }
 

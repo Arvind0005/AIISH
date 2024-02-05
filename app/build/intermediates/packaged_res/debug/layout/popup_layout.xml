@@ -61,10 +61,11 @@
     <TextView
         android:id="@+id/EnglishNote"
         android:visibility="gone"
+        android:textColor="#FF0000"
         android:layout_width="wrap_content"
         android:fontFamily="@font/rimouskisb_regular"
         android:layout_height="wrap_content"
-        android:text="Note:Please choose english as language to interpret english words."
+        android:text="Note: Kannada language is choosen. Please type Kannada sentences."
         android:layout_marginBottom="8dp"/>
 
     <LinearLayout
