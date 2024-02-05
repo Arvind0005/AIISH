@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AIISH</string>
+    <string name="app_name">Let\'sTalkSign</string>
     <string name="accessibility_service_description">Let\'sTalkSign service</string>
     <string name="accessibility_service_label">Let\'sTalkSign</string>
     <string name="accessibility_service_name">Text_Service\n</string>

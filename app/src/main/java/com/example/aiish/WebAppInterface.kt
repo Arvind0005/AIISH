@@ -10,7 +10,7 @@ class WebAppInterface(private val context: Context) {
        var response="";
     @JavascriptInterface
     fun sendDataToAndroid(data: String) {
-        println("heeeeeeeeeeeeeeeeeeloooo")
+        println("heeeeeeeeeeeeeeeeeeloooo---1111111")
         val intent = Intent("session_message")
         intent.putExtra("session_message", "ready")
         context.sendBroadcast(intent);
@@ -18,7 +18,7 @@ class WebAppInterface(private val context: Context) {
     }
     @JavascriptInterface
     fun missingAnimations(word: String) {
-        println("heeeeeeeeeeeeeeeeeeloooo")
+        println("heeeeeeeeeeeeeeeeeeloooo-222")
         val intent = Intent("missingAnimations")
         intent.putExtra("missingAnimations", "ready")
         context.sendBroadcast(intent);

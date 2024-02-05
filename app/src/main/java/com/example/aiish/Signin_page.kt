@@ -1,9 +1,11 @@
 package com.example.aiish
+import android.R
 import android.annotation.SuppressLint
 import android.app.ProgressDialog
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -12,7 +14,6 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -27,7 +28,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-
 
 
 class Signin_page : AppCompatActivity() {
@@ -96,15 +96,29 @@ class Signin_page : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.signup_page)
+        val config: Configuration = resources.configuration
+        println("sbhjcbshjbdsdsdjjvhjbfhjbj");
+//        nt width = getWindowManager().getDefaultDisplay().getWidth();
+//        int height = getWindowManager().getDefaultDisplay().getHeight()
+        println(config.smallestScreenWidthDp);
+        setContentView(com.example.aiish.R.layout.signup_page)
+        //config.smallestScreenWidthDp >= 600
+//        if (config.smallestScreenWidthDp >= 600) {
+//            setContentView(com.example.aiish.R.layout.signup_tablet)
+////            setContentView(R.layout.main_activity_tablet)
+//        } else {
+//              setContentView(com.example.aiish.R.layout.signup_page)
+////            setContentView(R.layout.main_activity)
+//        }
+      //  setContentView(R.layout.signup_page)
         secureTokenManager = SecureTokenManager(this)
        
-        rememberCheckBox = findViewById(R.id.rememberCheckBox)
+        rememberCheckBox = findViewById(com.example.aiish.R.id.rememberCheckBox)
         val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         val rememberUser = sharedPreferences.getBoolean("REMEMBER_USER", true)
         rememberCheckBox.isChecked = rememberUser
         progressDialog = ProgressDialog(this)
-        var Signin=findViewById<ImageView>(R.id.Signin);
+        var Signin=findViewById<ImageView>(com.example.aiish.R.id.Signin);
         val receivedIntent = intent
 //        var sharedText = receivedIntent.getStringExtra(Intent.EXTRA_TEXT)
 //        if (sharedText != null) {
@@ -172,7 +186,7 @@ class Signin_page : AppCompatActivity() {
                     secureTokenManager.saveEmail(userEmail)
                 };
                 val url = "https://trrain4-web.letstalksign.org/app_login"
-                val params= mapOf("customer_id" to "10009", "device_id" to id.toString(),"gmail_id" to userEmail, "full_name" to userName)
+                val params= mapOf("customer_id" to "10016", "device_id" to id.toString(),"gmail_id" to userEmail, "full_name" to userName)
                 postData(url, params)
                 UpdateUI(account)
             }

@@ -7,12 +7,14 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.app.ProgressDialog
+import android.content.ContentValues
 import android.content.Context
 //import com.google.android.material.navigation.NavigationView
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
@@ -41,6 +43,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -57,8 +60,10 @@ import com.android.volley.NetworkResponse
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.bugfender.sdk.Bugfender
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.example.aiish.ui.theme.AIISHTheme
@@ -66,13 +71,23 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.navigation.NavigationView
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
+import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStreamReader
+import java.io.UnsupportedEncodingException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.util.Locale
+import java.util.Objects
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     var language: String = "en-US"
@@ -84,14 +99,20 @@ class MainActivity : ComponentActivity() {
     private lateinit var cameraActivityResultLauncher: ActivityResultLauncher<Intent>
     private var imageUri: Uri? = null
     private lateinit var interpretButton: Button
-    private val maxWordCount = 100
+    private val maxWordCount = 50;
     private val REQUEST_CODE_SPEECH_INPUT = 1
     private var remainingWordCount = 10
     private var Transcribetext = "";
     private var currentWordCount = 0
+    private var isTablet=false;
+    private var deviceId="";
+    private val SMS_PERMISSION_REQUEST_CODE = 123
+    private var userEmail="";
+    private lateinit var secureTokenManager: SecureTokenManager
+    private var token="";
 
     var options = TranslatorOptions.Builder()
-    .setSourceLanguage(TranslateLanguage.TELUGU)
+    .setSourceLanguage(TranslateLanguage.KANNADA)
     .setTargetLanguage(TranslateLanguage.ENGLISH)
     .build()
     var englishGermanTranslator = Translation.getClient(options)
@@ -104,20 +125,20 @@ class MainActivity : ComponentActivity() {
 
 
     private fun getProfilePicUri(): String? {
-    //    Bugfender.d("MainActivity","getProfilePicUri");
+        Bugfender.d("MainActivity","getProfilePicUri");
         val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-    //    Bugfender.d("MainActivity",sharedPreferences.getString("PROFILE_PIC_URI", null));
+        Bugfender.d("MainActivity",sharedPreferences.getString("PROFILE_PIC_URI", null));
         return sharedPreferences.getString("PROFILE_PIC_URI", null)
     }
 
     fun openDrawer() {
-    //    Bugfender.d("MainActivity","openDrawer");
+        Bugfender.d("MainActivity","openDrawer");
         val drawerLayout = findViewById<DrawerLayout>(R.id.my_drawer_layout)
         drawerLayout.openDrawer(GravityCompat.END)
     }
     private fun recogniserImage(myId: Int, imageUri: Uri?) {
-//        Bugfender.d("MainActivity","recogniserImage");
-//        Bugfender.d("recogniserImage",imageUri.toString());
+        Bugfender.d("MainActivity","recogniserImage");
+        Bugfender.d("recogniserImage",imageUri.toString());
         try {
             //  Bugfender.d("recogniserImage","Try");
 //            val inputImage = imageUri?.let { InputImage.fromFilePath(this, it) }
@@ -136,9 +157,9 @@ class MainActivity : ComponentActivity() {
 //                    }
             //      }
         } catch (e: IOException) {
-//            Bugfender.d("recogniserImage","catch");
-//            Bugfender.e("recogniserImage",e.toString());
-//            Bugfender.d("recogniserImage","Exception");
+            Bugfender.d("recogniserImage","catch");
+            Bugfender.e("recogniserImage",e.toString());
+            Bugfender.d("recogniserImage","Exception");
             Toast.makeText(this@MainActivity, "Failed", Toast.LENGTH_LONG).show()
             e.printStackTrace()
         }
@@ -155,7 +176,7 @@ class MainActivity : ComponentActivity() {
 
         // Set click listener for the "OK" button
         view.findViewById<Button>(R.id.okButton).setOnClickListener {
-          //  Bugfender.d("showLogoutAlert","Yes");
+            Bugfender.d("showLogoutAlert","Yes");
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -172,7 +193,111 @@ class MainActivity : ComponentActivity() {
 
         alertDialog.show()
     }
+    fun getContentFromResponse(responseJson: String): String? {
+        try {
+            // Parse the JSON response
+            val jsonResponse = JSONObject(responseJson)
 
+            // Get the message object from the response
+            val messageObject = jsonResponse.getJSONObject("data").getJSONObject("message")
+
+            // Get the content field from the message object
+            val content = messageObject.getString("content")
+
+            return content
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+    fun sendGPTTranslationRequest(context: Context,content:String, params: Map<String, String?>, callback: (String) -> Unit) {
+        val url = "https://trrain4-web.letstalksign.org/get_translation"
+
+        println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
+
+        mRequestQueue = Volley.newRequestQueue(this)
+
+        mStringRequest = object : StringRequest(
+            Method.POST, url,
+            { response ->
+                println("response got from server1"+ response.toString())
+                val gson = Gson()
+                val jsonObject: JsonObject = gson.fromJson(response, JsonObject::class.java)
+                val translatedText= jsonObject.getAsJsonPrimitive("translated")?.asString;
+                println(jsonObject)
+                if (translatedText != null) {
+                    callback(translatedText)
+                }
+            },
+            { error ->
+                callback("Unexpected error please check your internet connection and try again!")
+                println("errrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr mainActivity")
+                println(error)
+                Log.i(ContentValues.TAG, "Error :" + error.networkResponse)
+            }) {
+            override fun getParams():Map<String, String?> {
+                return params
+            }
+        }
+
+        mRequestQueue!!.add(mStringRequest)
+
+//        try {
+//            val encodedContent = URLEncoder.encode(content, "UTF-8")
+//            val url = "https://5745-2402-3a80-4581-e521-48ed-2533-5693-280f.ngrok-free.app/translate?content=$encodedContent"
+//
+//            val stringRequest = StringRequest(
+//                Request.Method.GET,
+//                url,
+//                { response ->
+//                    // Handle response from the server
+//                    val translatedText = getContentFromResponse(response)
+//                    if (translatedText != null) {
+//                        callback(translatedText)
+//                    }
+//                },
+//                { error ->
+//                    // Handle error
+//                    callback("Unexpected error please check your internet connection and try again!")
+//                    error.printStackTrace()
+//                })
+//
+//            // Add the request to the RequestQueue
+//            Volley.newRequestQueue(this).add(stringRequest)
+//
+//        } catch (e: UnsupportedEncodingException) {
+//            e.printStackTrace()
+//            callback("Unexpected error")
+//        }
+    }
+
+    fun sendTranslationRequest(context: Context,text:String, params: Map<String, String?>) {
+        val url = "https://trrain4-web.letstalksign.org/get_translation"
+
+        println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
+
+        mRequestQueue = Volley.newRequestQueue(this)
+
+        mStringRequest = object : StringRequest(
+            Method.POST, url,
+            { response ->
+                println("response got from server1"+ response.toString())
+                val gson = Gson()
+                val jsonObject: JsonObject = gson.fromJson(response, JsonObject::class.java)
+                println(jsonObject)
+            },
+            { error ->
+                println("errrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr mainActivity")
+                println(error)
+                Log.i(ContentValues.TAG, "Error :" + error.networkResponse)
+            }) {
+            override fun getParams():Map<String, String?> {
+                return params
+            }
+        }
+
+        mRequestQueue!!.add(mStringRequest)
+    }
     private fun getData(url: String) {
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
 
@@ -186,17 +311,15 @@ class MainActivity : ComponentActivity() {
                 // This code will be executed upon a successful response
                 println("response got from server")
                 println(response)
-               // Bugfender.d("getData","respoonse from Server: $response");
+                Bugfender.d("getData","respoonse from Server: $response");
             },
             { error ->
+                println("error form the server");
                 println(error)
-//                if(error.networkResponse.statusCode!=null) {
-//                    if (error!!.networkResponse!!.statusCode.toString() == "401") {
-//                        sessionAlert(this@MainActivity);
-//                    }
-//                }
-//                Log.i(ContentValues.TAG, "Error: ${error.networkResponse.statusCode}")
-            //    Bugfender.d("getData","error from Server: $error");
+                println(error.message);
+                println(error.networkResponse);
+                println(url);
+                Bugfender.d("getData","error from Server: $error");
             }) {
             override fun parseNetworkResponse(response: NetworkResponse): Response<String> {
                 val statusCode = response.statusCode
@@ -215,8 +338,8 @@ class MainActivity : ComponentActivity() {
 
 
     fun sanitizeText(text: String): String {
-//            Bugfender.d("MainActivity","sanitizeText");
-//            Bugfender.d("sanitizeText",text);
+            Bugfender.d("MainActivity","sanitizeText");
+            Bugfender.d("sanitizeText",text);
         var text0 = text.lowercase(Locale.ROOT)
         var sanitizedText = text0
         for (word in profanityList) {
@@ -224,35 +347,53 @@ class MainActivity : ComponentActivity() {
             sanitizedText = sanitizedText.replace(Regex("(?i)\\b$word\\b"), replacement)
             sanitizedText = sanitizedText.replace(Regex("(?i)\\n$word\\n"), replacement)
         }
-        // Bugfender.d("sanitizeText",sanitizedText);
+         Bugfender.d("sanitizeText",sanitizedText);
         return sanitizedText
     }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.mainactivity)
+
+        val config: Configuration = resources.configuration
+        secureTokenManager = SecureTokenManager(this)
+        deviceId= secureTokenManager.loadId().toString();
+        userEmail=secureTokenManager.loadEmail().toString()
+        token=secureTokenManager.loadToken().toString();
+        //
+        if (config.smallestScreenWidthDp >= 600) {
+            isTablet=true;
+            setContentView(com.example.aiish.R.layout.mainactivity_tablet)
+//            setContentView(R.layout.main_activity_tablet)
+        } else {
+            isTablet=false;
+            setContentView(R.layout.mainactivity)
+//            setContentView(R.layout.main_activity)
+        }
         val scale = resources.displayMetrics.density
         var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
         val languageSpinner: Spinner = findViewById(R.id.languageSpinner)
         val scanButton = findViewById<ImageView>(R.id.webview_scan_ic);
         val languages = arrayOf(
             "English",
-            "Tamil",
-            "Telugu",
             "Kannada",
-            "Hindi",
-            "Gujarati",
-            "Marathi",
-            "Bengali"
         )
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("1056955407882-m2fv7ko571ndsu9bsh2irnbnb6354gb1.apps.googleusercontent.com")
             .requestEmail()
             .build()
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        var sadapter: ArrayAdapter<String>;
         // Create an ArrayAdapter using the string array and a default spinner layout
-        val sadapter = ArrayAdapter(this, R.layout.spinner_iteam, languages);
+        if(isTablet)
+        {
+             sadapter = ArrayAdapter(this, R.layout.spinner_iteam_tablet, languages);
+        }
+        else
+        {
+             sadapter = ArrayAdapter(this, R.layout.spinner_iteam, languages);
+        }
         var sortedAppInfos = mutableListOf<AppInfo>()
         // Specify the layout to use when the list of choices appears
         val adapter = MyArrayAdapter(this, R.id.iteamlistview, sortedAppInfos);
@@ -274,78 +415,27 @@ class MainActivity : ComponentActivity() {
                 selectedLanguage = languages[position]
 
 //                val englishGermanTranslator = Translation.getClient(options)
-                if (selectedLanguage != "Choose language")
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Selected Language: $selectedLanguage",
-                        Toast.LENGTH_SHORT
-                    ).show();
-
-//                if(selectedLanguage=="English") {
-//                    language = "en-us";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.ENGLISH)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Tamil") {
-//                    language = "ta-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.TAMIL)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Telugu") {
-//                    language = "te-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.TELUGU)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Kannada") {
-//                    language = "kn-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.KANNADA)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Malayalam") {
-//                    language = "ml-IN";
-////                    options = TranslatorOptions.Builder()
-////                        .setSourceLanguage(TranslateLanguage.M)
-////                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-////                        .build()
-//                }
-//                else if(selectedLanguage=="Hindi") {
-//                    language = "hi-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.HINDI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Gujarati") {
-//                    language = "gu-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.GUJARATI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Marathi") {
-//                    language = "mr-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.MARATHI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                else if(selectedLanguage=="Bengali") {
-//                    language = "bn-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.BENGALI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-
-                // this@MainActivity.englishGermanTranslator = Translation.getClient(options)
+//                if (selectedLanguage != "Choose language")
+//                    Toast.makeText(
+//                        this@MainActivity,
+//                        "Selected Language: $selectedLanguage",
+//                        Toast.LENGTH_SHORT
+//                    ).show();
+                if(selectedLanguage=="English") {
+                    language = "en-us";
+                    options = TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.ENGLISH)
+                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .build()
+                }
+                else if(selectedLanguage=="Kannada") {
+                    language = "kn-IN";
+                    options = TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.KANNADA)
+                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .build()
+                }
+                 englishGermanTranslator = Translation.getClient(options)
             }
 
             override fun onNothingSelected(parentView: AdapterView<*>?) {
@@ -358,8 +448,8 @@ class MainActivity : ComponentActivity() {
             profilePicUri = Uri.parse(getProfilePicUri()).toString();
         val imageViewProfilePicture = findViewById<ImageView>(R.id.profile_ic)
         if (profilePicUri != null) {
-//        Bugfender.d("MainActivity","profilePicUri");
-//        Bugfender.d("profilePicUri",profilePicUri);
+        Bugfender.d("MainActivity","profilePicUri");
+        Bugfender.d("profilePicUri",profilePicUri);
             println("profile pic uri-"+profilePicUri);
             Glide.with(this)
                 .load(profilePicUri)
@@ -369,7 +459,7 @@ class MainActivity : ComponentActivity() {
                 .into(imageViewProfilePicture)
         }
         imageViewProfilePicture.setOnClickListener {
-            //   Bugfender.d("MainActivity","imageViewProfilePicture");
+               Bugfender.d("MainActivity","imageViewProfilePicture");
             openDrawer();
         }
 
@@ -380,7 +470,7 @@ class MainActivity : ComponentActivity() {
         webSettings.javaScriptEnabled = true
 
         // Load the URL
-        val userurl = "https://letstalksign.org/extension/page2.html"
+        val userurl = "https://letstalksign.org/extension/aiish.html"
 //        webView.webViewClient = MyWebViewClient()
 
         webView.settings.javaScriptEnabled = true
@@ -410,70 +500,109 @@ class MainActivity : ComponentActivity() {
         }
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidInterface")
+        if(isTablet) {
+            webView.setInitialScale(465);
+        }
 
+        println("vanakaaaaaaam")
         val webviewTitle: TextView = findViewById(R.id.title_webview_text);
         val iv_mic: ImageView = findViewById<ImageView>(R.id.webview_mic_ic)
         val text_button: ImageView = findViewById(R.id.webview_text_ic);
         val text_title: TextView = findViewById(R.id.texttitle);
         tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
-        iv_mic.layoutParams.width = (35 * scale + 0.5f).toInt();
-        text_button.layoutParams.width = (35 * scale + 0.5f).toInt();
-        scanButton.layoutParams.width = (35 * scale + 0.5f).toInt();
+        if(!isTablet) {
+            iv_mic.layoutParams.width = (35 * scale + 0.5f).toInt();
+            text_button.layoutParams.width = (35 * scale + 0.5f).toInt();
+            scanButton.layoutParams.width = (35 * scale + 0.5f).toInt();
+        }
         text_button.setOnClickListener {
-           // Bugfender.d("MainActivity", "text_button")
-        //    getData("https://trrain4-web.letstalksign.org/app_log?mode=text_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
+//            var content="ಅಂಬೇಡ್ಕರ್ ರವರಿಗೆ ಗೌತಮ ಬುದ್ಧನ ಪ್ರಭಾವ ಎಷ್ಟಿತ್ತೆಂದರೆ ಅವರು ಎಂತಹ ಅಪಮಾನಗಳು ಎದುರಿಸಿದರೂ ಸಹ ಎಲ್ಲಿಯೂ ಅದನ್ನು ಹಿಂಸಾತ್ಮಕ ರೂಪದಲ್ಲಿ ಪ್ರತಿರೋಧಿಸಲಿಲ್ಲ. ಇವರು ಗೌತಮ ಬುದ್ಧನ ಅಪ್ಪಟ ಅನುಯಾಯಿಗಳಾಗಿದ್ದು ತಮ್ಮ ಜೀವಿತದ ಉದ್ದಕ್ಕೂ ಅಹಿಂಸೆಯನ್ನು ಪ್ರತಿಪಾದಿಸಿದರು. ಹಿಂಸಾಚಾರ ಎಂಬುದು ನಾಗರೀಕ ಜೀವನಕ್ಕೆ ಅಡ್ಡಿಯನ್ನುಂಟುಮಾಡುತ್ತದೆ ಎಂದು ತಿಳಿಸಿದರು. ಚೌಡರ್ ಕೆರೆಯ ನೀರನ್ನು ಮುಟ್ಟುವ ಚಳುವಳಿ (1927), ಕಲಾರಾಮ ದೇವಾಲಯ ಪ್ರವೇಶ ಚಳುವಳಿ (1929), ಪೂನಾ ಒಪ್ಪಂದ (1932)"
+//            sendGPTTranslationRequest(content);
+            Bugfender.d("MainActivity", "text_button")
+            println("tokennnnnnnnnnnnn");
+            println(token);
+            getData("https://trrain4-web.letstalksign.org/app_log?mode=text_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
             webviewTitle.text = "Entered Text:";
             val text_button: ImageView = findViewById(R.id.webview_text_ic)
             val text_title: TextView = findViewById(R.id.texttitle)
-            text_title.setTextSize(18F)
+            val scan_button: ImageView = findViewById(R.id.webview_scan_ic)
+            val scan_title: TextView = findViewById(R.id.scanTitle)
             fun dpToPx(dp: Int): Int {
                 val density = resources.displayMetrics.density
                 return (dp * density).toInt()
             }
-            text_button.layoutParams.height=dpToPx(42);
-            text_button.layoutParams.width=dpToPx(42);
-
             val mic_button: ImageView = findViewById(R.id.webview_mic_ic)
             val mic_title: TextView = findViewById(R.id.speakTitle)
-            mic_title.setTextSize(15F)
-            mic_button.layoutParams.height=dpToPx(35) // Increase height by 10dp
-            mic_button.layoutParams.width=dpToPx(35)
 
-            val scan_button: ImageView = findViewById(R.id.webview_scan_ic)
-            val scan_title: TextView = findViewById(R.id.scanTitle)
-            scan_title.setTextSize(15F)
-            scan_button.layoutParams.height=dpToPx(35)
-            scan_button.layoutParams.width=dpToPx(35);
+            if(isTablet)
+            {
+                text_title.setTextSize(30F)
+                text_button.layoutParams.height=dpToPx(65);
+                text_button.layoutParams.width=dpToPx(65);
+                mic_button.layoutParams.height=dpToPx(55) // Increase height by 10dp
+                mic_button.layoutParams.width=dpToPx(55)
+                mic_title.setTextSize(25F)
+                scan_title.setTextSize(25F)
+                scan_button.layoutParams.height=dpToPx(55)
+                scan_button.layoutParams.width=dpToPx(55);
 
+            }
+            else
+            {
+                text_title.setTextSize(18F)
+                text_button.layoutParams.height=dpToPx(42);
+                text_button.layoutParams.width=dpToPx(42);
+                mic_button.layoutParams.height=dpToPx(35) // Increase height by 10dp
+                mic_button.layoutParams.width=dpToPx(35)
+                mic_title.setTextSize(15F)
+                scan_title.setTextSize(15F)
+                scan_button.layoutParams.height=dpToPx(35)
+                scan_button.layoutParams.width=dpToPx(35);
+            }
             tv_Speech_to_text.setText("Click the text button above to type text and initiate interpretation.")
             showPopupWithEditText("","Text to Interpret")
         }
         iv_mic?.let { micButton ->
             micButton.setOnClickListener(View.OnClickListener {
-//                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
-//                Bugfender.d("MainActivity","micButton");
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                Bugfender.d("MainActivity","micButton");
 
                 val text_button: ImageView = findViewById(R.id.webview_text_ic)
                 val text_title: TextView = findViewById(R.id.texttitle)
-                text_title.setTextSize(15F)
+                val scan_button: ImageView = findViewById(R.id.webview_scan_ic)
+                val scan_title: TextView = findViewById(R.id.scanTitle)
                 fun dpToPx(dp: Int): Int {
                     val density = resources.displayMetrics.density
                     return (dp * density).toInt()
                 }
-                text_button.layoutParams.height=dpToPx(35);
-                text_button.layoutParams.width=dpToPx(35);
-
                 val mic_button: ImageView = findViewById(R.id.webview_mic_ic)
                 val mic_title: TextView = findViewById(R.id.speakTitle)
-                mic_title.setTextSize(18F)
-                mic_button.layoutParams.height=dpToPx(42) // Increase height by 10dp
-                mic_button.layoutParams.width=dpToPx(42)
 
-                val scan_button: ImageView = findViewById(R.id.webview_scan_ic)
-                val scan_title: TextView = findViewById(R.id.scanTitle)
-                scan_title.setTextSize(15F)
-                scan_button.layoutParams.height=dpToPx(35)
-                scan_button.layoutParams.width=dpToPx(35);
+                if(isTablet)
+                {
+                    text_title.setTextSize(25F)
+                    text_button.layoutParams.height=dpToPx(55);
+                    text_button.layoutParams.width=dpToPx(55);
+                    mic_button.layoutParams.height=dpToPx(65) // Increase height by 10dp
+                    mic_button.layoutParams.width=dpToPx(65)
+                    mic_title.setTextSize(30F)
+                    scan_title.setTextSize(25F)
+                    scan_button.layoutParams.height=dpToPx(55)
+                    scan_button.layoutParams.width=dpToPx(55);
+
+                }
+                else
+                {
+                    text_title.setTextSize(15F)
+                    text_button.layoutParams.height=dpToPx(35);
+                    text_button.layoutParams.width=dpToPx(35);
+                    mic_button.layoutParams.height=dpToPx(42) // Increase height by 10dp
+                    mic_button.layoutParams.width=dpToPx(42)
+                    mic_title.setTextSize(18F)
+                    scan_title.setTextSize(15F)
+                    scan_button.layoutParams.height=dpToPx(35)
+                    scan_button.layoutParams.width=dpToPx(35);
+                }
                 webviewTitle.setText("Spoken Text:")
                 tv_Speech_to_text.setText("Click the mic button above perform speach to sign interpretation.")
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
@@ -503,9 +632,9 @@ class MainActivity : ComponentActivity() {
         cameraActivityResultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-//            Bugfender.d("Scan","Camera activity launcher");
-//            Bugfender.d("ScanResult",result.toString());
-//            Bugfender.d("ScanResult",result.resultCode.toString()+imageUri.toString());
+            Bugfender.d("Scan","Camera activity launcher");
+            Bugfender.d("ScanResult",result.toString());
+            Bugfender.d("ScanResult",result.resultCode.toString()+imageUri.toString());
 
             if (result.resultCode == Activity.RESULT_OK) {
                 // Bugfender.d("ImageOK",imageUri.toString());
@@ -513,34 +642,34 @@ class MainActivity : ComponentActivity() {
                 // Handle the result here
                 // The captured image is usually available via the 'imageUri' property
             } else {
-                //Bugfender.e("ScanError",result.toString());
+                Bugfender.e("ScanError",result.toString());
             }
         }
 //        scanButton.setOnClickListener{
-//          //  Bugfender.d("MainActivity","scanButton");
-//        //    getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_opened&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+//            Bugfender.d("MainActivity","scanButton");
+        //    getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_opened&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
 //            webviewTitle.setText("Scanned Text:");
 //            val text_button: ImageView = findViewById(R.id.webview_text_ic)
 //            val text_title: TextView = findViewById(R.id.texttitle)
-//            text_title.setTextSize(15F)
+//            text_title.setTextSize(25F)
 //            fun dpToPx(dp: Int): Int {
 //                val density = resources.displayMetrics.density
 //                return (dp * density).toInt()
 //            }
-//            text_button.layoutParams.height=dpToPx(35);
-//            text_button.layoutParams.width=dpToPx(35);
+//            text_button.layoutParams.height=dpToPx(55);
+//            text_button.layoutParams.width=dpToPx(55);
 //
 //            val mic_button: ImageView = findViewById(R.id.webview_mic_ic)
 //            val mic_title: TextView = findViewById(R.id.speakTitle)
-//            mic_title.setTextSize(15F)
-//            mic_button.layoutParams.height=dpToPx(35) // Increase height by 10dp
-//            mic_button.layoutParams.width=dpToPx(35)
+//            mic_title.setTextSize(25F)
+//            mic_button.layoutParams.height=dpToPx(55) // Increase height by 10dp
+//            mic_button.layoutParams.width=dpToPx(55)
 //
 //            val scan_button: ImageView = findViewById(R.id.webview_scan_ic)
 //            val scan_title: TextView = findViewById(R.id.scanTitle)
-//            scan_title.setTextSize(18F)
-//            scan_button.layoutParams.height=dpToPx(42)
-//            scan_button.layoutParams.width=dpToPx(42)
+//            scan_title.setTextSize(30F)
+//            scan_button.layoutParams.height=dpToPx(65)
+//            scan_button.layoutParams.width=dpToPx(65)
 //            tv_Speech_to_text.setText("Click the scan button above to scan text and initiate interpretation.")
 //            if(selectedLanguage!="English")
 //            {
@@ -565,7 +694,7 @@ class MainActivity : ComponentActivity() {
         val navigationView = findViewById<NavigationView>(R.id.navigationView)
 
         navigationView.setNavigationItemSelectedListener { menuItem ->
-           // Bugfender.d("MainActivity","navigationView.setNavigationItemSelectedListener");
+            Bugfender.d("MainActivity","navigationView.setNavigationItemSelectedListener");
             when (menuItem.itemId) {
                 R.id.nav_settings -> {
                     openAccessibilitySettings();
@@ -586,21 +715,111 @@ class MainActivity : ComponentActivity() {
         }
 
     }
+
+    override fun onActivityResult(
+        requestCode: Int, resultCode: Int,
+        @Nullable data: Intent?
+    ) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_SPEECH_INPUT) {
+            Bugfender.d("MainActivity", "onActivityResult")
+            if (resultCode == RESULT_OK && data != null) {
+                val result = data.getStringArrayListExtra(
+                    RecognizerIntent.EXTRA_RESULTS
+                )
+                var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text)
+                tv_Speech_to_text!!.visibility = View.VISIBLE
+                if(selectedLanguage!="English")
+                {
+                    val progressDialog = ProgressDialog(this@MainActivity)
+                    progressDialog.setMessage("Translating...")
+                    progressDialog.setCancelable(false)
+                    progressDialog.show()
+
+                    // Make the translation request
+                    val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to " " + Objects.requireNonNull(result)?.get(0),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
+
+                    //     sendTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params);
+                    sendGPTTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params) { translatedText ->
+                        // Dismiss the progress dialog
+                        progressDialog.dismiss()
+
+                        if (translatedText == "Translation failed" || translatedText == "Unexpected error please check your internet connection and try again!") {
+                            Toast.makeText(this@MainActivity, translatedText, Toast.LENGTH_LONG).show()
+                        } else {
+                            if (translatedText != null) {
+                                showPopupWithEditText(translatedText, "Recognised Text")
+                            }
+                        }
+                    }
+
+                    println("hjbdsvhfdsbvyfbvgyfbvdfbbfyggdfnjnfj uuhujnjn")
+                }
+                else{
+                    showPopupWithEditText(" " + Objects.requireNonNull(result)?.get(0), "Recognised Text")
+                }
+
+                // Show loading progress dialog
+
+            }
+        }
+    }
+
+
+    //    override fun onActivityResult(
+//        requestCode: Int, resultCode: Int,
+//        @Nullable data: Intent?
+//    ) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        if (requestCode == REQUEST_CODE_SPEECH_INPUT) {
+//            Bugfender.d("MainActivity","onActivityResult");
+//            if (resultCode == RESULT_OK && data != null) {
+//                val result = data.getStringArrayListExtra(
+//                    RecognizerIntent.EXTRA_RESULTS
+//                )
+//                var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
+//                tv_Speech_to_text!!.visibility=View.VISIBLE;
+////                translatetoEnglish( " "+ Objects.requireNonNull(result)?.get(0)){ text ->
+////                    Bugfender.d("onActivityResult",text.toString());
+////                    if(text=="Translation failed" || text=="Model download failed")
+////                    {
+////                        Toast.makeText(this@MainActivity,text, Toast.LENGTH_LONG)
+////                    }
+////                    else
+////                    {
+////                        showPopupWithEditText(text,"Recognised Text");
+////                    }
+////                }
+//                var translatedText=sendGPTTranslationRequest(" " + Objects.requireNonNull(result)?.get(0))
+//
+//                if(translatedText=="Translation failed" || translatedText=="Check your internet connection")
+//                {
+//                    Toast.makeText(this@MainActivity,translatedText, Toast.LENGTH_LONG)
+//                }
+//                else
+//                {
+//                    if (translatedText != null) {
+//                        showPopupWithEditText(translatedText,"Recognised Text")
+//                    };
+//                }
+//            }
+//        }
+//    }
     private fun openAccessibilitySettings() {
-       // Bugfender.d("MainActivity","openAccessibilitySettings");
+        Bugfender.d("MainActivity","openAccessibilitySettings");
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         startActivityForResult(intent,1);
     }
 
     private fun showLogoutAlert() {
-      //  Bugfender.d("MainActivity","showLogoutAlert");
+        Bugfender.d("MainActivity","showLogoutAlert");
         val builder = AlertDialog.Builder(this)
 
         builder.setTitle("Logout")
         builder.setMessage("Are you sure you want to logout?")
 
         builder.setPositiveButton("Yes") { _: DialogInterface, _: Int ->
-//            Bugfender.d("showLogoutAlert","Yes");
+            Bugfender.d("showLogoutAlert","Yes");
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -608,14 +827,14 @@ class MainActivity : ComponentActivity() {
             mGoogleSignInClient.signOut().addOnCompleteListener {
                 val intent = Intent(this, Signin_page::class.java)
                 Toast.makeText(this, "Logging Out", Toast.LENGTH_SHORT).show();
-             //   getData("https://trrain4-web.letstalksign.org/app_log?mode=logout&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=logout&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
                 startActivity(intent)
                 finish()
             }
         }
 
         builder.setNegativeButton("Cancel") { dialog: DialogInterface, _: Int ->
-         //   Bugfender.d("showLogoutAlert","Cancel");
+            Bugfender.d("showLogoutAlert","Cancel");
             dialog.dismiss()
         }
 
@@ -624,14 +843,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showProgressDialog() {
-      //  Bugfender.d("MainActivity","showProgressDialog");
+        Bugfender.d("MainActivity","showProgressDialog");
         progressDialog = ProgressDialog(this)
         progressDialog?.setMessage("Downloading translation model please wait this may take few seconds...")
         progressDialog?.setCancelable(false)
         progressDialog?.show()
     }
     private fun dismissProgressDialog() {
-     //   Bugfender.d("MainActivity","dismissProgressDialog");
+        Bugfender.d("MainActivity","dismissProgressDialog");
         progressDialog?.dismiss()
         progressDialog = null
     }
@@ -659,9 +878,13 @@ class MainActivity : ComponentActivity() {
                 callback("Model download failed")
             }
     }
+    fun isAscii(char: Char): Boolean {
+        val codePoint = char.toInt()
+        return codePoint in 0..127
+    }
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     private fun showPopupWithEditText(initialText: CharSequence, Title:String) {
-        //Bugfender.d("MainActivity","showPopupWithEditText");
+        Bugfender.d("MainActivity","showPopupWithEditText");
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         val builder = AlertDialog.Builder(this)
         val layout = layoutInflater.inflate(R.layout.popup_layout, null)
@@ -679,6 +902,15 @@ class MainActivity : ComponentActivity() {
             interpretButton.isEnabled = false;
             println("sdbvhjbschsbhdbdhbdcnvjfvj");
         }
+        var containsForeignWord = false
+        fun containsNonAlphanumeric(text: String): Boolean {
+            for (char in text) {
+                if (!char.isLetterOrDigit() && !char.isWhitespace()) {
+                    return true
+                }
+            }
+            return false
+        }
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
                 charSequence: CharSequence?,
@@ -694,6 +926,7 @@ class MainActivity : ComponentActivity() {
                 before: Int,
                 count: Int
             ) {
+                val englishNote= layout.findViewById<TextView>(R.id.EnglishNote);
                 // Calculate the current word count
                 val words = charSequence?.trim()?.split(Regex("\\s+"))
                 currentWordCount = words?.size ?: 0
@@ -707,10 +940,47 @@ class MainActivity : ComponentActivity() {
                 // Enable/disable the interpret button based on the word count
                 if (remainingWordCount < 0) {
                     interpretButton.isEnabled = false
-                    ReadyFlag = false
+
+                    //interpretButton.setBackgroundColor("")
+                    //ReadyFlag = false
                 }
-                if (interpretButton.text == "Interpret" && remainingWordCount >= 0) {
+                if (interpretButton.text == "Interpret" && remainingWordCount >= 0 ) {
                     interpretButton.isEnabled = true
+                   // englishNote.visibility=View.GONE;
+
+                }
+                if(charSequence?.length==0 || charSequence.isNullOrBlank())
+                {
+                    interpretButton.isEnabled = false
+                }
+                if(selectedLanguage=="Kannada" && Title == "Text to Interpret")
+                {
+                    if (words?.isNotEmpty() == true) {
+                        for(word in words) {
+                            for (char in word) {
+                                if (isAscii(char)) {
+                                    englishNote.setText("Note:Please choose english as language to interpret english words.")
+                                    englishNote.visibility=View.VISIBLE;
+                                    interpretButton.isEnabled = false
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if(selectedLanguage=="English" && Title == "Text to Interpret"){
+                    if (words?.isNotEmpty() == true) {
+                        for(word in words) {
+                            for (char in word) {
+                                if (!isAscii(char)) {
+                                    englishNote.setText("Note:Please make sure you only use english words.")
+                                    englishNote.visibility=View.VISIBLE;
+                                    interpretButton.isEnabled = false
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -784,9 +1054,9 @@ class MainActivity : ComponentActivity() {
 //        }
 //        else{
         interpretButton.setText("Interpret")
-        if (remainingWordCount > 0) {
-            interpretButton.isEnabled = true;
-        }
+//        if (remainingWordCount > 0) {
+//            interpretButton.isEnabled = true;
+//        }
         //  }
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
@@ -803,7 +1073,7 @@ class MainActivity : ComponentActivity() {
                 before: Int,
                 count: Int
             ) {
-                interpretButton.isEnabled = (!charSequence.isNullOrBlank())
+//                interpretButton.isEnabled = ((!charSequence.isNullOrBlank()) && remainingWordCount>0)
 //                if(!ReadyFlag)
 //                {
 //                    interpretButton.isEnabled=false;
@@ -814,6 +1084,7 @@ class MainActivity : ComponentActivity() {
             override fun afterTextChanged(editable: Editable?) {
             }
         })
+
 
         // Make the EditText scrollable
 //        editText.setOnTouchListener { _, event ->
@@ -827,62 +1098,88 @@ class MainActivity : ComponentActivity() {
         interpretButton.setOnClickListener {
 
             if (Title == "Scanned Text") {
-              //  getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_interpreted&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_interpreted&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             } else if (Title == "Text to Interpret") {
-             //   getData("https://trrain4-web.letstalksign.org/app_log?mode=text_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=text_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             } else if (Title == "Recognised Text") {
-            //    getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             }
-            if (selectedLanguage != "English") {
-                if (selectedLanguage == "Tamil") {
-                    language = "ta-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.TAMIL)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Telugu") {
-                    language = "te-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.TELUGU)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Kannada") {
-                    language = "kn-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.KANNADA)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Hindi") {
-                    language = "hi-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.HINDI)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Gujarati") {
-                    language = "gu-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.GUJARATI)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Marathi") {
-                    language = "mr-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.MARATHI)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                } else if (selectedLanguage == "Bengali") {
-                    language = "bn-IN";
-                    options = TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.BENGALI)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build()
-                }
-                this@MainActivity.englishGermanTranslator = Translation.getClient(options)
-                translatetoEnglish(editText.text.toString())
-                { text ->
+            if (selectedLanguage != "English" && Title=="Text to Interpret") {
+//                if (selectedLanguage == "Tamil") {
+//                    language = "ta-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.TAMIL)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Telugu") {
+//                    language = "te-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.TELUGU)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Kannada") {
+//                    language = "kn-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.KANNADA)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Hindi") {
+//                    language = "hi-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.HINDI)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Gujarati") {
+//                    language = "gu-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.GUJARATI)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Marathi") {
+//                    language = "mr-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.MARATHI)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                } else if (selectedLanguage == "Bengali") {
+//                    language = "bn-IN";
+//                    options = TranslatorOptions.Builder()
+//                        .setSourceLanguage(TranslateLanguage.BENGALI)
+//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+//                        .build()
+//                }
+//                this@MainActivity.englishGermanTranslator = Translation.getClient(options)
+//                translatetoEnglish(editText.text.toString())
+//                { text ->
+//                    Transcribetext = text
+//                    println("translated text" + text);
+//                    Bugfender.d("MainAcEdittextPopup",text.toString());
+//                    var ftext = text
+//                    ftext = ftext.replace("\n", "");
+//                    ftext = ftext.replace("\b", "");
+//                    var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
+//                    if (!ReadyFlag) {
+//                        tv_Speech_to_text?.setText("Please wait the model is loading...!")
+//                    } else {
+//                        tv_Speech_to_text?.setText(ftext);
+//                        tv_Speech_to_text?.visibility = View.VISIBLE;
+//                    }
+//                    //val jsCode = "sendMessage('${ftext}');"
+//                    val jsCode = "sendMessage(\"${ftext}\")";
+//                    println(jsCode);
+//                    webView.evaluateJavascript(jsCode, null)
+//                }
+                val progressDialog = ProgressDialog(this@MainActivity)
+                progressDialog.setMessage("Translating...")
+                progressDialog.setCancelable(false)
+                progressDialog.show()
+                val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to editText.text.toString(),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
+
+                sendGPTTranslationRequest(this,editText.text.toString(),params) { text ->
+                    progressDialog.dismiss();
                     Transcribetext = text
                     println("translated text" + text);
-                    //   Bugfender.d("MainAcEdittextPopup",text.toString());
+                    Bugfender.d("MainAcEdittextPopup",text.toString());
                     var ftext = text
                     ftext = ftext.replace("\n", "");
                     ftext = ftext.replace("\b", "");
@@ -899,26 +1196,46 @@ class MainActivity : ComponentActivity() {
                     webView.evaluateJavascript(jsCode, null)
                 }
             } else {
-                // Bugfender.d("EditText",editText.text.toString());
+                Bugfender.d("EditText",editText.text.toString());
                 println(editText.text);
                 Transcribetext = editText.text.toString();
                 var ftext = editText.text.toString()
                 ftext = ftext.replace("\n", "");
                 ftext = ftext.replace("\b", "");
                 var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
+                var sanitized_text="";
                 println("wefhibgufhdvbhfdbhjbhjsd");
                 if (!ReadyFlag) {
                     println("djncjsdjcsbdhjbsjhbs")
                     tv_Speech_to_text?.setText("Please wait the model is loading...!")
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 } else {
-                    tv_Speech_to_text?.setText(sanitizeText(ftext));
+                    sanitized_text=sanitizeText(ftext)
+                    tv_Speech_to_text?.setText(sanitized_text);
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 }
-                val jsCode = "sendMessage(\"${ftext}\")";
-                println(jsCode);
-                webView.evaluateJavascript(jsCode, null)
-                dialog.dismiss()
+
+                if(sanitized_text!=ftext.toLowerCase())
+                {
+                    println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
+                    println(sanitized_text)
+                    println(ftext);
+                    var errortext="Exclude inappropriate words for interpretation."
+                    val jsCode = "sendMessage(\"${errortext}\")";
+                    println(jsCode);
+                    webView.evaluateJavascript(jsCode, null)
+                    dialog.dismiss()
+                }
+                else{
+
+                    println(sanitized_text)
+                    println(ftext);
+                    val jsCode = "sendMessage(\"${ftext}\")";
+                    println(jsCode);
+                    webView.evaluateJavascript(jsCode, null)
+                    dialog.dismiss()
+                }
+
             }
 
             // Handle the Ok button click
