@@ -19,6 +19,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.os.LocaleList
 import android.provider.Settings
 import android.speech.RecognizerIntent
@@ -80,6 +81,12 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.FormBody
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -90,6 +97,9 @@ import java.net.URLEncoder
 import java.util.Locale
 import java.util.Objects
 import org.json.JSONObject
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class MainActivity : ComponentActivity() {
     var language: String = "en-US"
@@ -101,6 +111,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var cameraActivityResultLauncher: ActivityResultLauncher<Intent>
     private var imageUri: Uri? = null
     private lateinit var interpretButton: Button
+    private lateinit var fileName:String;
     private val maxWordCount = 50;
     private val REQUEST_CODE_SPEECH_INPUT = 1
     private var remainingWordCount = 10
@@ -112,6 +123,100 @@ class MainActivity : ComponentActivity() {
     private var userEmail="";
     private lateinit var secureTokenManager: SecureTokenManager
     private var token="";
+    private lateinit var fileHandler: FileHandler
+
+
+    fun writeToFile(filename: String) {
+        fileHandler.createAndWriteToFile("mainActivity "+"writeToFile",fileName);
+        deviceId= secureTokenManager.loadId().toString();
+        userEmail=secureTokenManager.loadEmail().toString()
+        token=secureTokenManager.loadToken().toString();
+        val serverUrl="https://trrain4-web.letstalksign.org"
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        var content=fileHandler.readFromFile(filename)
+        println("sjdbshdbhgsbcghsdvchgcsvghsdvghdsv");
+        println(content);
+        val requestBody = FormBody.Builder()
+            .add("content", content.toString())
+            .add("customer_id", "10016")
+            .add("device_id", deviceId)
+            .add("user_email", userEmail)
+            .add("token", token)
+            .build()
+//        val requestBody = FormBody.Builder()
+//            .add("content", content.toString())
+//            .build()
+
+        val request = okhttp3.Request.Builder()
+            .url("$serverUrl/write-to-file/$filename")
+            .post(requestBody)
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle error
+                Log.e("Write to File", "Error: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: okhttp3.Response) {
+                // Handle response
+                if (response.isSuccessful) {
+                    println("response of writing to file is successs"+response);
+                    fileHandler.createAndWriteToFile("writeToFile "+response.isSuccessful,fileName);
+
+                    Log.d("Write to File", "Success: ${response.body().toString()}")
+                } else {
+                    fileHandler.createAndWriteToFile("writeToFile "+"Error: ${response.code()}",fileName);
+                    println("response of writing to file is unsuccesful"+response);
+                    Log.e("Write to File", "Error: ${response.code()}")
+                }
+            }
+        })
+    }
+    //RequestBody.create("application/octet-stream"., file)
+//    fun uploadFile(filePath: String, serverUrl: String,filename:String) {
+//        println("kjdvncjdnfcjndsnsdkkvjdcnjnksjcks")
+//        println(filePath);
+//        val file = File(filePath)
+//        //val contents=fileHandler.readFromFile(filename);
+////        val requestBody = MultipartBody.Builder()
+////            .setType(MultipartBody.FORM)
+////            .addFormDataPart("file", file.name,
+////                file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+////            )
+////            .build()
+//        val requestBody = MultipartBody.Builder()
+//            .setType(MultipartBody.FORM)
+//            .addFormDataPart("file", file.name,
+//                file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+//            )
+//            .build()
+//
+//        val request = okhttp3.Request.Builder()
+//            .url(serverUrl)
+//            .post(requestBody)
+//            .build()
+//
+//        val client = OkHttpClient()
+//        client.newCall(request).enqueue(object : Callback {
+//            override fun onFailure(call: Call, e: IOException) {
+//                // Handle error
+//                Log.e("File Upload",serverUrl);
+//                Log.e("File Upload", "Error: ${e.message}")
+//            }
+//
+//            override fun onResponse(call: Call, response: okhttp3.Response) {
+//                // Handle response
+//                if (response.isSuccessful) {
+//                    Log.d("File Upload", "Success: ${response.body()?.string()}")
+//                } else {
+//                    Log.e("File Upload",serverUrl);
+//                    Log.e("File Upload", "Error: ${response.code()}")
+//                }
+//            }
+//        })
+//    }
 
     var options = TranslatorOptions.Builder()
     .setSourceLanguage(TranslateLanguage.KANNADA)
@@ -130,17 +235,26 @@ class MainActivity : ComponentActivity() {
             println("session Messagekdcnnjndcjndjnjcdnjcdnjc");
             if(sms=="ready")
             {
+                fileHandler.createAndWriteToFile("sessionMsg "+"ready",fileName);
+
 
                 if(remainingWordCount>0)
                 {
+                    fileHandler.createAndWriteToFile("sessionMsg "+"remainingWordCount>0",fileName);
+
                     ReadyFlag=true;
-                    var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
-                    tv_Speech_to_text?.setText(sanitizeText(Transcribetext));
-                    tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
-                    tv_Speech_to_text?.visibility=View.VISIBLE;
-                    val jsCode = "sendMessage(\"${Transcribetext}\")";
-                    println(jsCode);
-                    webView.evaluateJavascript(jsCode, null)
+                    var text=sanitizeText(Transcribetext)
+                    if(text.isNotEmpty()) {
+                        fileHandler.createAndWriteToFile("sessionMsg $text",fileName);
+
+                        var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
+                        tv_Speech_to_text?.setText(text);
+                        tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
+                        tv_Speech_to_text?.visibility = View.VISIBLE;
+                        val jsCode = "sendMessage(\"${Transcribetext}\")";
+                        println(jsCode);
+                        webView.evaluateJavascript(jsCode, null)
+                    }
                 }
             }
         }
@@ -148,18 +262,24 @@ class MainActivity : ComponentActivity() {
 
     private fun getProfilePicUri(): String? {
         Bugfender.d("MainActivity","getProfilePicUri");
+        fileHandler.createAndWriteToFile("MainActivity "+"getProfilePicUri",fileName);
+
+        fileHandler.createAndWriteToFile("MainActivity"+ "getProfilePicUri", fileName)
         val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         Bugfender.d("MainActivity",sharedPreferences.getString("PROFILE_PIC_URI", null));
+        fileHandler.createAndWriteToFile("getProfilePicUri "+sharedPreferences.getString("PROFILE_PIC_URI", null),fileName);
         return sharedPreferences.getString("PROFILE_PIC_URI", null)
     }
 
     fun openDrawer() {
         Bugfender.d("MainActivity","openDrawer");
+        fileHandler.createAndWriteToFile("getProfilePicUri "+"openDrawer",fileName);
         val drawerLayout = findViewById<DrawerLayout>(R.id.my_drawer_layout)
         drawerLayout.openDrawer(GravityCompat.END)
     }
-    private fun recogniserImage(myId: Int, imageUri: Uri?) {
+    private fun   recogniserImage(myId: Int, imageUri: Uri?) {
         Bugfender.d("MainActivity","recogniserImage");
+
         Bugfender.d("recogniserImage",imageUri.toString());
         try {
             //  Bugfender.d("recogniserImage","Try");
@@ -188,6 +308,7 @@ class MainActivity : ComponentActivity() {
     }
 
     fun sessionAlert(context: Context) {
+        fileHandler.createAndWriteToFile("MainActivity "+"sessionAlert",fileName);
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.session_timeout_alert, null)
 
@@ -199,6 +320,7 @@ class MainActivity : ComponentActivity() {
         // Set click listener for the "OK" button
         view.findViewById<Button>(R.id.okButton).setOnClickListener {
             Bugfender.d("showLogoutAlert","Yes");
+            fileHandler.createAndWriteToFile("showLogoutAlert "+"Yes",fileName);
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -236,22 +358,28 @@ class MainActivity : ComponentActivity() {
         val url = "https://trrain4-web.letstalksign.org/get_translation"
 
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
+        fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+params.toString(),fileName);
 
         mRequestQueue = Volley.newRequestQueue(this)
 
         mStringRequest = object : StringRequest(
             Method.POST, url,
             { response ->
+                fileHandler.createAndWriteToFile("Scan "+"Not English",fileName);
                 println("response got from server1"+ response.toString())
+                fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+response.toString(),fileName);
+
                 val gson = Gson()
                 val jsonObject: JsonObject = gson.fromJson(response, JsonObject::class.java)
                 val translatedText= jsonObject.getAsJsonPrimitive("translated")?.asString;
                 println(jsonObject)
                 if (translatedText != null) {
+                    fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+translatedText.toString(),fileName);
                     callback(translatedText)
                 }
             },
             { error ->
+                fileHandler.createAndWriteToFile("sendGPTTranslationRequest Error "+error.toString(),fileName);
                 callback("Unexpected error please check your internet connection and try again!")
                 println("errrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr mainActivity")
                 println(error)
@@ -322,7 +450,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun getData(url: String) {
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
-
+        fileHandler.createAndWriteToFile("MainActivity "+"getData $url",fileName);
         // RequestQueue initialized
         mRequestQueue = Volley.newRequestQueue(this)
 
@@ -334,6 +462,8 @@ class MainActivity : ComponentActivity() {
                 println("response got from server")
                 println(response)
                 Bugfender.d("getData","respoonse from Server: $response");
+                fileHandler.createAndWriteToFile("getData "+"respoonse from Server: $response",fileName);
+
             },
             { error ->
                 println("error form the server");
@@ -342,6 +472,8 @@ class MainActivity : ComponentActivity() {
                 println(error.networkResponse);
                 println(url);
                 Bugfender.d("getData","error from Server: $error");
+                fileHandler.createAndWriteToFile("getData "+"error from Server: $error",fileName);
+
             }) {
             override fun parseNetworkResponse(response: NetworkResponse): Response<String> {
                 val statusCode = response.statusCode
@@ -362,6 +494,9 @@ class MainActivity : ComponentActivity() {
     fun sanitizeText(text: String): String {
             Bugfender.d("MainActivity","sanitizeText");
             Bugfender.d("sanitizeText",text);
+        fileHandler.createAndWriteToFile("MainActivity "+"sanitizeText",fileName);
+        fileHandler.createAndWriteToFile("sanitizeText_in "+text,fileName);
+
         var text0 = text.lowercase(Locale.ROOT)
         var sanitizedText = text0
         for (word in profanityList) {
@@ -370,9 +505,33 @@ class MainActivity : ComponentActivity() {
             sanitizedText = sanitizedText.replace(Regex("(?i)\\n$word\\n"), replacement)
         }
          Bugfender.d("sanitizeText",sanitizedText);
+        fileHandler.createAndWriteToFile("sanitizeText_out "+sanitizedText,fileName);
         return sanitizedText
     }
+    private val handlerfile = Handler()
+    private val runnable = object : Runnable {
+        override fun run() {
+            writeToFile(fileName)
+            fileHandler.deleteFile(fileName);
+            handlerfile.postDelayed(this, 60000) // 10 seconds delay
+        }
+    }
+    override fun onResume() {
+        super.onResume()
+        handlerfile.postDelayed(runnable, 60000) // Start the runnable immediately
+    }
 
+    override fun onPause() {
+        super.onPause()
+        handlerfile.removeCallbacks(runnable) // Stop the runnable when the activity is paused
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Save token to savedInstanceState
+        outState.putString("token", token)
+        outState.putString("deviceId", deviceId)
+        outState.putString("userEmail", userEmail)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -382,6 +541,38 @@ class MainActivity : ComponentActivity() {
         deviceId= secureTokenManager.loadId().toString();
         userEmail=secureTokenManager.loadEmail().toString()
         token=secureTokenManager.loadToken().toString();
+        fileHandler = FileHandler(this)
+        secureTokenManager = SecureTokenManager(this)
+        // Example usage:
+        val data = "app is in background"
+        fileName = "$deviceId.txt"
+//        fileHandler.deleteFile(fileName);
+//        fileHandler.deleteFile(fileName);
+
+        fileHandler.createAndWriteToFile(data, fileName)
+        writeToFile(fileName);
+
+//        val isDeleted0 = fileHandler.deleteFile("example.txt")
+//        println(isDeleted0);
+        val fileContent = fileHandler.readFromFile(fileName)
+        println(fileContent);
+
+        val file=File(this.filesDir, fileName);
+        if (savedInstanceState != null) {
+            // Restore token from savedInstanceState
+            token = savedInstanceState.getString("token", "")
+            deviceId=savedInstanceState.getString("deviceId", "")
+            userEmail=savedInstanceState.getString("userEmail", "")
+        } else {
+            // Initialize token if savedInstanceState is null
+            token = secureTokenManager.loadToken().toString()
+            deviceId= secureTokenManager.loadId().toString();
+            userEmail=secureTokenManager.loadEmail().toString()
+        }
+        fileHandler.createAndWriteToFile("content1 ", fileName);
+//        Handler().postDelayed({
+        fileHandler.createAndWriteToFile("content2 ",fileName);
+
         registerReceiver(sessionMsg, IntentFilter("session_message"))
         if (config.smallestScreenWidthDp >= 600) {
             isTablet=true;
@@ -470,8 +661,10 @@ class MainActivity : ComponentActivity() {
             profilePicUri = Uri.parse(getProfilePicUri()).toString();
         val imageViewProfilePicture = findViewById<ImageView>(R.id.profile_ic)
         if (profilePicUri != null) {
-        Bugfender.d("MainActivity","profilePicUri");
-        Bugfender.d("profilePicUri",profilePicUri);
+            Bugfender.d("MainActivity","profilePicUri");
+            fileHandler.createAndWriteToFile("MainActivity "+"profilePicUri",fileName);
+            Bugfender.d("profilePicUri",profilePicUri);
+            fileHandler.createAndWriteToFile("profilePicUri "+profilePicUri,fileName);
             println("profile pic uri-"+profilePicUri);
             Glide.with(this)
                 .load(profilePicUri)
@@ -482,6 +675,7 @@ class MainActivity : ComponentActivity() {
         }
         imageViewProfilePicture.setOnClickListener {
                Bugfender.d("MainActivity","imageViewProfilePicture");
+                fileHandler.createAndWriteToFile("MainActivity "+"imageViewProfilePicture",fileName);
             openDrawer();
         }
 
@@ -513,6 +707,7 @@ class MainActivity : ComponentActivity() {
         webView.webViewClient = WebViewClient()
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                fileHandler.createAndWriteToFile("WebView Console.log "+consoleMessage.sourceId() + " " + consoleMessage.lineNumber() + " " + consoleMessage.message(),fileName);
                 Log.d(
                     "WebView Console.log",
                     consoleMessage.sourceId() + " " + consoleMessage.lineNumber() + " " + consoleMessage.message()
@@ -525,14 +720,13 @@ class MainActivity : ComponentActivity() {
         if(isTablet) {
             webView.setInitialScale(310);
         }
-
-        println("vanakaaaaaaam")
         val webviewTitle: TextView = findViewById(R.id.title_webview_text);
         val iv_mic: ImageView = findViewById<ImageView>(R.id.webview_mic_ic)
         val text_button: ImageView = findViewById(R.id.webview_text_ic);
         val text_title: TextView = findViewById(R.id.texttitle);
         tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
         if(!isTablet) {
+            fileHandler.createAndWriteToFile("MainActivity "+"!isTablet",fileName);
             iv_mic.layoutParams.width = (35 * scale + 0.5f).toInt();
             text_button.layoutParams.width = (35 * scale + 0.5f).toInt();
             scanButton.layoutParams.width = (35 * scale + 0.5f).toInt();
@@ -540,7 +734,8 @@ class MainActivity : ComponentActivity() {
         text_button.setOnClickListener {
 //            var content="ಅಂಬೇಡ್ಕರ್ ರವರಿಗೆ ಗೌತಮ ಬುದ್ಧನ ಪ್ರಭಾವ ಎಷ್ಟಿತ್ತೆಂದರೆ ಅವರು ಎಂತಹ ಅಪಮಾನಗಳು ಎದುರಿಸಿದರೂ ಸಹ ಎಲ್ಲಿಯೂ ಅದನ್ನು ಹಿಂಸಾತ್ಮಕ ರೂಪದಲ್ಲಿ ಪ್ರತಿರೋಧಿಸಲಿಲ್ಲ. ಇವರು ಗೌತಮ ಬುದ್ಧನ ಅಪ್ಪಟ ಅನುಯಾಯಿಗಳಾಗಿದ್ದು ತಮ್ಮ ಜೀವಿತದ ಉದ್ದಕ್ಕೂ ಅಹಿಂಸೆಯನ್ನು ಪ್ರತಿಪಾದಿಸಿದರು. ಹಿಂಸಾಚಾರ ಎಂಬುದು ನಾಗರೀಕ ಜೀವನಕ್ಕೆ ಅಡ್ಡಿಯನ್ನುಂಟುಮಾಡುತ್ತದೆ ಎಂದು ತಿಳಿಸಿದರು. ಚೌಡರ್ ಕೆರೆಯ ನೀರನ್ನು ಮುಟ್ಟುವ ಚಳುವಳಿ (1927), ಕಲಾರಾಮ ದೇವಾಲಯ ಪ್ರವೇಶ ಚಳುವಳಿ (1929), ಪೂನಾ ಒಪ್ಪಂದ (1932)"
 //            sendGPTTranslationRequest(content);
-            Bugfender.d("MainActivity", "text_button")
+            Bugfender.d("MainActivity ", "text_button")
+            fileHandler.createAndWriteToFile("MainActivity "+"text_button",fileName);
             println("tokennnnnnnnnnnnn");
             println(token);
             getData("https://trrain4-web.letstalksign.org/app_log?mode=text_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
@@ -558,6 +753,7 @@ class MainActivity : ComponentActivity() {
 
             if(isTablet)
             {
+                fileHandler.createAndWriteToFile("MainActivity "+"isTablet",fileName);
                 text_title.setTextSize(30F)
                 text_button.layoutParams.height=dpToPx(65);
                 text_button.layoutParams.width=dpToPx(65);
@@ -571,6 +767,7 @@ class MainActivity : ComponentActivity() {
             }
             else
             {
+                fileHandler.createAndWriteToFile("MainActivity "+"notisTablet",fileName);
                 text_title.setTextSize(18F)
                 text_button.layoutParams.height=dpToPx(42);
                 text_button.layoutParams.width=dpToPx(42);
@@ -588,6 +785,7 @@ class MainActivity : ComponentActivity() {
             micButton.setOnClickListener(View.OnClickListener {
                 getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
                 Bugfender.d("MainActivity","micButton");
+                fileHandler.createAndWriteToFile("MainActivity "+"micButton",fileName);
 
                 val text_button: ImageView = findViewById(R.id.webview_text_ic)
                 val text_title: TextView = findViewById(R.id.texttitle)
@@ -602,6 +800,8 @@ class MainActivity : ComponentActivity() {
 
                 if(isTablet)
                 {
+                    fileHandler.createAndWriteToFile("micButton "+"isTablet",fileName);
+
                     text_title.setTextSize(25F)
                     text_button.layoutParams.height=dpToPx(55);
                     text_button.layoutParams.width=dpToPx(55);
@@ -615,6 +815,8 @@ class MainActivity : ComponentActivity() {
                 }
                 else
                 {
+                    fileHandler.createAndWriteToFile("micButton "+"notisTablet",fileName);
+
                     text_title.setTextSize(15F)
                     text_button.layoutParams.height=dpToPx(35);
                     text_button.layoutParams.width=dpToPx(35);
@@ -717,15 +919,18 @@ class MainActivity : ComponentActivity() {
 
         navigationView.setNavigationItemSelectedListener { menuItem ->
             Bugfender.d("MainActivity","navigationView.setNavigationItemSelectedListener");
+            fileHandler.createAndWriteToFile("MainActivity "+"navigationView.setNavigationItemSelectedListener",fileName);
             when (menuItem.itemId) {
                 R.id.nav_settings -> {
                     openAccessibilitySettings();
+                    fileHandler.createAndWriteToFile("MainActivity "+"openAccessibilitySettings",fileName)
                     println("sssssssssseeeeeeeeeeeeeeeeetttttttttttttttttt");
                     // Handle settings click
                     // Add your logic here
                     true
                 }
                 R.id.nav_logout -> {
+                    fileHandler.createAndWriteToFile("MainActivity "+"showLogoutAlert();",fileName)
                     showLogoutAlert();
 
                     // Handle logout click
@@ -738,6 +943,8 @@ class MainActivity : ComponentActivity() {
 
     }
 
+
+
     override fun onActivityResult(
         requestCode: Int, resultCode: Int,
         @Nullable data: Intent?
@@ -745,6 +952,7 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE_SPEECH_INPUT) {
             Bugfender.d("MainActivity", "onActivityResult")
+            fileHandler.createAndWriteToFile("MainActivity "+"onActivityResult();",fileName)
             if (resultCode == RESULT_OK && data != null) {
                 val result = data.getStringArrayListExtra(
                     RecognizerIntent.EXTRA_RESULTS
@@ -753,14 +961,18 @@ class MainActivity : ComponentActivity() {
                 tv_Speech_to_text!!.visibility = View.VISIBLE
                 if(selectedLanguage!="English")
                 {
+                    fileHandler.createAndWriteToFile("onActivityResult() "+"selectedLanguage!=\"English\";",fileName)
                     val progressDialog = ProgressDialog(this@MainActivity)
                     progressDialog.setMessage("Translating...")
                     progressDialog.setCancelable(false)
                     progressDialog.show()
+                    token=secureTokenManager.loadToken().toString();
+                    deviceId= secureTokenManager.loadId().toString();
+                    userEmail=secureTokenManager.loadEmail().toString()
 
                     // Make the translation request
                     val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to " " + Objects.requireNonNull(result)?.get(0),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
-
+                    fileHandler.createAndWriteToFile("onActivityResult() selectedLanguage!=\"English\\ "+params.toString(),fileName)
                     //     sendTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params);
                     sendGPTTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params) { translatedText ->
                         // Dismiss the progress dialog
@@ -770,6 +982,7 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(this@MainActivity, translatedText, Toast.LENGTH_LONG).show()
                         } else {
                             if (translatedText != null) {
+                                fileHandler.createAndWriteToFile("onActivityResult() selectedLanguage!=\"English\\ "+translatedText,fileName)
                                 showPopupWithEditText(translatedText, "Recognised Text")
                             }
                         }
@@ -778,6 +991,7 @@ class MainActivity : ComponentActivity() {
                     println("hjbdsvhfdsbvyfbvgyfbvdfbbfyggdfnjnfj uuhujnjn")
                 }
                 else{
+                    fileHandler.createAndWriteToFile("onActivityResult() else "+Objects.requireNonNull(result)?.get(0),fileName)
                     showPopupWithEditText(" " + Objects.requireNonNull(result)?.get(0), "Recognised Text")
                 }
 
@@ -828,13 +1042,15 @@ class MainActivity : ComponentActivity() {
 //        }
 //    }
     private fun openAccessibilitySettings() {
-        Bugfender.d("MainActivity","openAccessibilitySettings");
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        startActivityForResult(intent,1);
+        Bugfender.d("MainActivity", "openNormalSettings")
+        fileHandler.createAndWriteToFile("MainActivity "+"openNormalSettings",fileName)
+        val intent = Intent(Settings.ACTION_SETTINGS)
+        startActivityForResult(intent, 1)
     }
 
     private fun showLogoutAlert() {
         Bugfender.d("MainActivity","showLogoutAlert");
+        fileHandler.createAndWriteToFile("MainActivity "+"showLogoutAlert",fileName)
         val builder = AlertDialog.Builder(this)
 
         builder.setTitle("Logout")
@@ -842,6 +1058,7 @@ class MainActivity : ComponentActivity() {
 
         builder.setPositiveButton("Yes") { _: DialogInterface, _: Int ->
             Bugfender.d("showLogoutAlert","Yes");
+            fileHandler.createAndWriteToFile("showLogoutAlert "+"Yes",fileName)
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -866,6 +1083,7 @@ class MainActivity : ComponentActivity() {
 
     private fun showProgressDialog() {
         Bugfender.d("MainActivity","showProgressDialog");
+        fileHandler.createAndWriteToFile("MainActivity "+"showProgressDialog",fileName)
         progressDialog = ProgressDialog(this)
         progressDialog?.setMessage("Downloading translation model please wait this may take few seconds...")
         progressDialog?.setCancelable(false)
@@ -873,6 +1091,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun dismissProgressDialog() {
         Bugfender.d("MainActivity","dismissProgressDialog");
+        fileHandler.createAndWriteToFile("MainActivity "+"dismissProgressDialog",fileName)
         progressDialog?.dismiss()
         progressDialog = null
     }
@@ -907,6 +1126,7 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     private fun showPopupWithEditText(initialText: CharSequence, Title:String) {
         Bugfender.d("MainActivity","showPopupWithEditText");
+        fileHandler.createAndWriteToFile("MainActivity "+"showPopupWithEditText",fileName);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         val builder = AlertDialog.Builder(this)
         val layout = layoutInflater.inflate(R.layout.popup_layout, null)
@@ -968,7 +1188,7 @@ class MainActivity : ComponentActivity() {
                 }
                 if (interpretButton.text == "Interpret" && remainingWordCount >= 0 ) {
                     interpretButton.isEnabled = true
-                   // englishNote.visibility=View.GONE;
+                    englishNote.visibility=View.GONE;
 
                 }
                 if(charSequence?.length==0 || charSequence.isNullOrBlank())
@@ -981,7 +1201,7 @@ class MainActivity : ComponentActivity() {
                         for(word in words) {
                             for (char in word) {
                                 if (isAscii(char)) {
-                                    englishNote.setText("Note: Kannada language is choosen. Please type Kannada sentences.")
+                                    englishNote.setText("Note: Kannada language is chosen. Please type Kannada sentences.")
                                     englishNote.visibility=View.VISIBLE;
                                     interpretButton.isEnabled = false
                                     break;
@@ -995,7 +1215,7 @@ class MainActivity : ComponentActivity() {
                         for(word in words) {
                             for (char in word) {
                                 if (!isAscii(char)) {
-                                    englishNote.setText("Note:Please make sure you only use english words.")
+                                    englishNote.setText("Note:English language is chosen. Please type English sentences.")
                                     englishNote.visibility=View.VISIBLE;
                                     interpretButton.isEnabled = false
                                     break;
@@ -1023,7 +1243,7 @@ class MainActivity : ComponentActivity() {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
-                titletext.toString() + "i.e " + "Halō for " + "హలో. This feature only works on selected keybords like Gboard."
+            titletext.toString() + "i.e " + "Halō for " + "హలో. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("te", "IN")))
         } else if (selectedLanguage == "Kannada") {
@@ -1039,7 +1259,7 @@ class MainActivity : ComponentActivity() {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
-                titletext.toString() + "i.e " + "namaste for " + "नमस्ते. This feature only works on selected keybords like Gboard."
+            titletext.toString() + "i.e " + "namaste for " + "नमस्ते. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("hi", "IN")))
         } else if (selectedLanguage == "Gujarati") {
@@ -1056,7 +1276,8 @@ class MainActivity : ComponentActivity() {
                 titletext.toString() + "i.e " + "Namaskāra for " + "नमस्कार. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("mr", "IN")))
-        } else if (selectedLanguage == "Bengali") {
+        }
+        else if (selectedLanguage == "Bengali") {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
@@ -1118,7 +1339,7 @@ class MainActivity : ComponentActivity() {
         val dialog = builder.create();
         dialog.show();
         interpretButton.setOnClickListener {
-
+            fileHandler.createAndWriteToFile("MainActivity "+"interpretButton",fileName);
             if (Title == "Scanned Text") {
                 getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_interpreted&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             } else if (Title == "Text to Interpret") {
@@ -1127,79 +1348,23 @@ class MainActivity : ComponentActivity() {
                 getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             }
             if (selectedLanguage != "English" && Title=="Text to Interpret") {
-//                if (selectedLanguage == "Tamil") {
-//                    language = "ta-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.TAMIL)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Telugu") {
-//                    language = "te-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.TELUGU)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Kannada") {
-//                    language = "kn-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.KANNADA)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Hindi") {
-//                    language = "hi-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.HINDI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Gujarati") {
-//                    language = "gu-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.GUJARATI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Marathi") {
-//                    language = "mr-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.MARATHI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                } else if (selectedLanguage == "Bengali") {
-//                    language = "bn-IN";
-//                    options = TranslatorOptions.Builder()
-//                        .setSourceLanguage(TranslateLanguage.BENGALI)
-//                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-//                        .build()
-//                }
-//                this@MainActivity.englishGermanTranslator = Translation.getClient(options)
-//                translatetoEnglish(editText.text.toString())
-//                { text ->
-//                    Transcribetext = text
-//                    println("translated text" + text);
-//                    Bugfender.d("MainAcEdittextPopup",text.toString());
-//                    var ftext = text
-//                    ftext = ftext.replace("\n", "");
-//                    ftext = ftext.replace("\b", "");
-//                    var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
-//                    if (!ReadyFlag) {
-//                        tv_Speech_to_text?.setText("Please wait the model is loading...!")
-//                    } else {
-//                        tv_Speech_to_text?.setText(ftext);
-//                        tv_Speech_to_text?.visibility = View.VISIBLE;
-//                    }
-//                    //val jsCode = "sendMessage('${ftext}');"
-//                    val jsCode = "sendMessage(\"${ftext}\")";
-//                    println(jsCode);
-//                    webView.evaluateJavascript(jsCode, null)
-//                }
+                fileHandler.createAndWriteToFile("MainActivity "+"selectedLanguage != \"English\" && Title==\"Text to Interpret\"",fileName);
                 val progressDialog = ProgressDialog(this@MainActivity)
                 progressDialog.setMessage("Translating...")
                 progressDialog.setCancelable(false)
                 progressDialog.show()
+                if(token==null || deviceId==null || userEmail=="")
+                {
+                    deviceId= secureTokenManager.loadId().toString();
+                    userEmail=secureTokenManager.loadEmail().toString()
+                    token=secureTokenManager.loadToken().toString();
+                }
                 val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to editText.text.toString(),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
-
+                fileHandler.createAndWriteToFile("selectedLanguage "+params.toString(),fileName);
                 sendGPTTranslationRequest(this,editText.text.toString(),params) { text ->
                     progressDialog.dismiss();
                     Transcribetext = text
+                    fileHandler.createAndWriteToFile("sendGPTTranslationRequestTrans "+Transcribetext.toString(),fileName);
                     println("translated text" + text);
                     Bugfender.d("MainAcEdittextPopup",text.toString());
                     var ftext = text
@@ -1224,6 +1389,8 @@ class MainActivity : ComponentActivity() {
             }
             else {
                 Bugfender.d("EditText",editText.text.toString());
+
+                fileHandler.createAndWriteToFile("EditText "+editText.text.toString(),fileName);
                 println(editText.text);
                 Transcribetext = editText.text.toString();
                 var ftext = editText.text.toString()
@@ -1235,12 +1402,15 @@ class MainActivity : ComponentActivity() {
                 sanitized_text=sanitizeText(ftext)
                 if (!ReadyFlag) {
                     Transcribetext=sanitized_text;
+                    fileHandler.createAndWriteToFile("EditText "+Transcribetext.toString(),fileName);
                     println("djncjsdjcsbdhjbsjhbs")
                     tv_Speech_to_text?.setText("Please wait the model is loading...!")
                     tv_Speech_to_text?.setTextColor(Color.parseColor("#FF0000"))
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 } else {
+
                     sanitized_text=sanitizeText(ftext)
+                    fileHandler.createAndWriteToFile("EditText "+sanitized_text.toString(),fileName)
                     tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
                     tv_Speech_to_text?.setText(sanitized_text);
                     tv_Speech_to_text?.visibility = View.VISIBLE;
@@ -1251,6 +1421,7 @@ class MainActivity : ComponentActivity() {
                     {
                         println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
                         println(sanitized_text)
+                        fileHandler.createAndWriteToFile("sanitized_text!=ftext.toLowerCase() "+sanitized_text.toString(),fileName)
                         println(ftext);
                         var errortext="Exclude inappropriate words for interpretation."
                         val jsCode = "sendMessage(\"${errortext}\")";
@@ -1259,10 +1430,10 @@ class MainActivity : ComponentActivity() {
                         dialog.dismiss()
                     }
                     else{
-
+                        fileHandler.createAndWriteToFile("showpopup "+sanitized_text,fileName)
                         println(sanitized_text)
                         println(ftext);
-                        val jsCode = "sendMessage(\"${ftext}\")";
+                        val jsCode = "sendMessage(\"${sanitized_text}\")";
                         println(jsCode);
                         webView.evaluateJavascript(jsCode, null)
                         dialog.dismiss()
@@ -1274,6 +1445,8 @@ class MainActivity : ComponentActivity() {
                     {
                         println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
                         println(sanitized_text)
+                        fileHandler.createAndWriteToFile("sanitized_text "+sanitized_text,fileName)
+                        fileHandler.createAndWriteToFile("ftext "+ftext,fileName)
                         println(ftext);
                         var errortext="Exclude inappropriate words for interpretation."
                         Transcribetext="Exclude inappropriate words for interpretation."
@@ -1287,6 +1460,7 @@ class MainActivity : ComponentActivity() {
                         println(sanitized_text)
                         println(ftext);
                         Transcribetext=sanitized_text
+                        fileHandler.createAndWriteToFile("showpopup else Transcribetext"+Transcribetext,fileName)
 //                        val jsCode = "sendMessage(\"${ftext}\")";
 //                        println(jsCode);
 //                        webView.evaluateJavascript(jsCode, null)

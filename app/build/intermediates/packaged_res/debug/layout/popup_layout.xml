@@ -8,7 +8,7 @@
         android:id="@+id/titlePopup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="25dp"
+        android:layout_marginLeft="10dp"
         android:text="Edit the text below"
         android:textColor="@color/textColor"
         android:textSize="30dp"
@@ -19,7 +19,7 @@
         android:id="@+id/subtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="25dp"
+        android:layout_marginLeft="10dp"
         android:text="Edit the text below"
         android:textColor="@color/textColor"
         android:textSize="15dp"
@@ -28,8 +28,8 @@
         android:id="@+id/type_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="25dp"
-        android:text="Type your choosen language in english to interpret "
+        android:layout_marginLeft="10dp"
+        android:text="Type your chosen language in english to interpret "
         android:textColor="#808080"
         android:textSize="15dp"
         android:fontFamily="@font/rimouskisb_regular" />
@@ -52,6 +52,7 @@
     </ScrollView>
 
     <TextView
+        android:layout_marginLeft="10dp"
         android:id="@+id/remainingWordCount"
         android:layout_width="wrap_content"
         android:fontFamily="@font/rimouskisb_regular"
@@ -59,13 +60,14 @@
         android:text="Remaining Words : 50"
         android:layout_marginBottom="8dp"/>
     <TextView
+        android:layout_margin="10dp"
         android:id="@+id/EnglishNote"
         android:visibility="gone"
         android:textColor="#FF0000"
         android:layout_width="wrap_content"
         android:fontFamily="@font/rimouskisb_regular"
         android:layout_height="wrap_content"
-        android:text="Note: Kannada language is choosen. Please type Kannada sentences."
+        android:text="Note: Kannada language is chosen. Please type Kannada sentences."
         android:layout_marginBottom="8dp"/>
 
     <LinearLayout

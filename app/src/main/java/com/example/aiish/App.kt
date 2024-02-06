@@ -10,6 +10,5 @@ class App : Application() {
         Bugfender.init(this, "IKXPG5Al5cET27U1h3a3EmzFIbob9k0g", BuildConfig.DEBUG)
         Bugfender.enableCrashReporting()
         Bugfender.enableUIEventLogging(this)
-        Bugfender.enableLogcatLogging() // optional, if you want logs automatically collected from logcat
     }
 }

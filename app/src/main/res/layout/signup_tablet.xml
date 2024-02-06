@@ -15,7 +15,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:text="Let'sTalkSign-Mobile"
+            android:text="Let'sTalkSign"
             android:textColor="@color/textColor"
             android:textStyle="bold"
             android:gravity="center_horizontal"
