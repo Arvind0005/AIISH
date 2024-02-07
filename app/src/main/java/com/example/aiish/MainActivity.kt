@@ -107,34 +107,33 @@ class MainActivity : ComponentActivity() {
     var selectedLanguage = "Choose language";
     private lateinit var webView: WebView
     private var progressDialog: ProgressDialog? = null
-    var ReadyFlag=false;
+    var ReadyFlag = false;
     private lateinit var cameraActivityResultLauncher: ActivityResultLauncher<Intent>
     private var imageUri: Uri? = null
     private lateinit var interpretButton: Button
-    private lateinit var fileName:String;
+    private lateinit var fileName: String;
     private val maxWordCount = 50;
     private val REQUEST_CODE_SPEECH_INPUT = 1
     private var remainingWordCount = 10
     private var Transcribetext = "";
     private var currentWordCount = 0
-    private var isTablet=false;
-    private var deviceId="";
+    private var isTablet = false;
+    private var deviceId = "";
     private val SMS_PERMISSION_REQUEST_CODE = 123
-    private var userEmail="";
+    private var userEmail = "";
     private lateinit var secureTokenManager: SecureTokenManager
-    private var token="";
+    private lateinit var token: String;
     private lateinit var fileHandler: FileHandler
 
 
     fun writeToFile(filename: String) {
-        fileHandler.createAndWriteToFile("mainActivity "+"writeToFile",fileName);
-        deviceId= secureTokenManager.loadId().toString();
-        userEmail=secureTokenManager.loadEmail().toString()
-        token=secureTokenManager.loadToken().toString();
-        val serverUrl="https://trrain4-web.letstalksign.org"
+        fileHandler.createAndWriteToFile("mainActivity " + "writeToFile", fileName);
+        deviceId = secureTokenManager.loadId().toString();
+        userEmail = secureTokenManager.loadEmail().toString()
+        token = secureTokenManager.loadToken().toString();
+        val serverUrl = "https://trrain4-web.letstalksign.org"
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        var content=fileHandler.readFromFile(filename)
-        println("sjdbshdbhgsbcghsdvchgcsvghsdvghdsv");
+        var content = fileHandler.readFromFile(filename)
         println(content);
         val requestBody = FormBody.Builder()
             .add("content", content.toString())
@@ -162,13 +161,19 @@ class MainActivity : ComponentActivity() {
             override fun onResponse(call: Call, response: okhttp3.Response) {
                 // Handle response
                 if (response.isSuccessful) {
-                    println("response of writing to file is successs"+response);
-                    fileHandler.createAndWriteToFile("writeToFile "+response.isSuccessful,fileName);
+                    println("response of writing to file is successs" + response);
+                    fileHandler.createAndWriteToFile(
+                        "writeToFile " + response.isSuccessful,
+                        fileName
+                    );
 
                     Log.d("Write to File", "Success: ${response.body().toString()}")
                 } else {
-                    fileHandler.createAndWriteToFile("writeToFile "+"Error: ${response.code()}",fileName);
-                    println("response of writing to file is unsuccesful"+response);
+                    fileHandler.createAndWriteToFile(
+                        "writeToFile " + "Error: ${response.code()}",
+                        fileName
+                    );
+                    println("response of writing to file is unsuccesful" + response);
                     Log.e("Write to File", "Error: ${response.code()}")
                 }
             }
@@ -219,9 +224,9 @@ class MainActivity : ComponentActivity() {
 //    }
 
     var options = TranslatorOptions.Builder()
-    .setSourceLanguage(TranslateLanguage.KANNADA)
-    .setTargetLanguage(TranslateLanguage.ENGLISH)
-    .build()
+        .setSourceLanguage(TranslateLanguage.KANNADA)
+        .setTargetLanguage(TranslateLanguage.ENGLISH)
+        .build()
     var englishGermanTranslator = Translation.getClient(options)
     val profanityList = Globals.profanityList
 
@@ -233,19 +238,20 @@ class MainActivity : ComponentActivity() {
         override fun onReceive(context: Context, intent: Intent) {
             val sms = intent.extras?.getString("session_message")
             println("session Messagekdcnnjndcjndjnjcdnjcdnjc");
-            if(sms=="ready")
-            {
-                fileHandler.createAndWriteToFile("sessionMsg "+"ready",fileName);
+            if (sms == "ready") {
+                fileHandler.createAndWriteToFile("sessionMsg " + "ready", fileName);
 
 
-                if(remainingWordCount>0)
-                {
-                    fileHandler.createAndWriteToFile("sessionMsg "+"remainingWordCount>0",fileName);
+                if (remainingWordCount > 0) {
+                    fileHandler.createAndWriteToFile(
+                        "sessionMsg " + "remainingWordCount>0",
+                        fileName
+                    );
 
-                    ReadyFlag=true;
-                    var text=sanitizeText(Transcribetext)
-                    if(text.isNotEmpty()) {
-                        fileHandler.createAndWriteToFile("sessionMsg $text",fileName);
+                    ReadyFlag = true;
+                    var text = sanitizeText(Transcribetext)
+                    if (text.isNotEmpty()) {
+                        fileHandler.createAndWriteToFile("sessionMsg $text", fileName);
 
                         var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
                         tv_Speech_to_text?.setText(text);
@@ -261,26 +267,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun getProfilePicUri(): String? {
-        Bugfender.d("MainActivity","getProfilePicUri");
-        fileHandler.createAndWriteToFile("MainActivity "+"getProfilePicUri",fileName);
+        Bugfender.d("MainActivity", "getProfilePicUri");
+        fileHandler.createAndWriteToFile("MainActivity " + "getProfilePicUri", fileName);
 
-        fileHandler.createAndWriteToFile("MainActivity"+ "getProfilePicUri", fileName)
+        fileHandler.createAndWriteToFile("MainActivity" + "getProfilePicUri", fileName)
         val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        Bugfender.d("MainActivity",sharedPreferences.getString("PROFILE_PIC_URI", null));
-        fileHandler.createAndWriteToFile("getProfilePicUri "+sharedPreferences.getString("PROFILE_PIC_URI", null),fileName);
+        Bugfender.d("MainActivity", sharedPreferences.getString("PROFILE_PIC_URI", null));
+        fileHandler.createAndWriteToFile(
+            "getProfilePicUri " + sharedPreferences.getString(
+                "PROFILE_PIC_URI",
+                null
+            ), fileName
+        );
         return sharedPreferences.getString("PROFILE_PIC_URI", null)
     }
 
     fun openDrawer() {
-        Bugfender.d("MainActivity","openDrawer");
-        fileHandler.createAndWriteToFile("getProfilePicUri "+"openDrawer",fileName);
+        Bugfender.d("MainActivity", "openDrawer");
+        fileHandler.createAndWriteToFile("getProfilePicUri " + "openDrawer", fileName);
         val drawerLayout = findViewById<DrawerLayout>(R.id.my_drawer_layout)
         drawerLayout.openDrawer(GravityCompat.END)
     }
-    private fun   recogniserImage(myId: Int, imageUri: Uri?) {
-        Bugfender.d("MainActivity","recogniserImage");
 
-        Bugfender.d("recogniserImage",imageUri.toString());
+    private fun recogniserImage(myId: Int, imageUri: Uri?) {
+        Bugfender.d("MainActivity", "recogniserImage");
+
+        Bugfender.d("recogniserImage", imageUri.toString());
         try {
             //  Bugfender.d("recogniserImage","Try");
 //            val inputImage = imageUri?.let { InputImage.fromFilePath(this, it) }
@@ -299,16 +311,16 @@ class MainActivity : ComponentActivity() {
 //                    }
             //      }
         } catch (e: IOException) {
-            Bugfender.d("recogniserImage","catch");
-            Bugfender.e("recogniserImage",e.toString());
-            Bugfender.d("recogniserImage","Exception");
+            Bugfender.d("recogniserImage", "catch");
+            Bugfender.e("recogniserImage", e.toString());
+            Bugfender.d("recogniserImage", "Exception");
             Toast.makeText(this@MainActivity, "Failed", Toast.LENGTH_LONG).show()
             e.printStackTrace()
         }
     }
 
     fun sessionAlert(context: Context) {
-        fileHandler.createAndWriteToFile("MainActivity "+"sessionAlert",fileName);
+        fileHandler.createAndWriteToFile("MainActivity " + "sessionAlert", fileName);
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.session_timeout_alert, null)
 
@@ -319,8 +331,8 @@ class MainActivity : ComponentActivity() {
 
         // Set click listener for the "OK" button
         view.findViewById<Button>(R.id.okButton).setOnClickListener {
-            Bugfender.d("showLogoutAlert","Yes");
-            fileHandler.createAndWriteToFile("showLogoutAlert "+"Yes",fileName);
+            Bugfender.d("showLogoutAlert", "Yes");
+            fileHandler.createAndWriteToFile("showLogoutAlert " + "Yes", fileName);
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -337,6 +349,7 @@ class MainActivity : ComponentActivity() {
 
         alertDialog.show()
     }
+
     fun getContentFromResponse(responseJson: String): String? {
         try {
             // Parse the JSON response
@@ -354,38 +367,55 @@ class MainActivity : ComponentActivity() {
         }
         return null
     }
-    fun sendGPTTranslationRequest(context: Context,content:String, params: Map<String, String?>, callback: (String) -> Unit) {
-        val url = "https://trrain4-web.letstalksign.org/get_translation"
 
+    fun sendGPTTranslationRequest(
+        context: Context,
+        content: String,
+        params: Map<String, String?>,
+        callback: (String) -> Unit
+    ) {
+        val url = "https://trrain4-web.letstalksign.org/get_translation"
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
-        fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+params.toString(),fileName);
+        fileHandler.createAndWriteToFile(
+            "sendGPTTranslationRequest " + params.toString(),
+            fileName
+        );
 
         mRequestQueue = Volley.newRequestQueue(this)
 
         mStringRequest = object : StringRequest(
             Method.POST, url,
             { response ->
-                fileHandler.createAndWriteToFile("Scan "+"Not English",fileName);
-                println("response got from server1"+ response.toString())
-                fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+response.toString(),fileName);
+                fileHandler.createAndWriteToFile("Scan " + "Not English", fileName);
+                println("response got from server1" + response.toString())
+                fileHandler.createAndWriteToFile(
+                    "sendGPTTranslationRequest " + response.toString(),
+                    fileName
+                );
 
                 val gson = Gson()
                 val jsonObject: JsonObject = gson.fromJson(response, JsonObject::class.java)
-                val translatedText= jsonObject.getAsJsonPrimitive("translated")?.asString;
+                val translatedText = jsonObject.getAsJsonPrimitive("translated")?.asString;
                 println(jsonObject)
                 if (translatedText != null) {
-                    fileHandler.createAndWriteToFile("sendGPTTranslationRequest "+translatedText.toString(),fileName);
+                    fileHandler.createAndWriteToFile(
+                        "sendGPTTranslationRequest " + translatedText.toString(),
+                        fileName
+                    );
                     callback(translatedText)
                 }
             },
             { error ->
-                fileHandler.createAndWriteToFile("sendGPTTranslationRequest Error "+error.toString(),fileName);
+                fileHandler.createAndWriteToFile(
+                    "sendGPTTranslationRequest Error " + error.toString(),
+                    fileName
+                );
                 callback("Unexpected error please check your internet connection and try again!")
                 println("errrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr mainActivity")
                 println(error)
                 Log.i(ContentValues.TAG, "Error :" + error.networkResponse)
             }) {
-            override fun getParams():Map<String, String?> {
+            override fun getParams(): Map<String, String?> {
                 return params
             }
         }
@@ -421,7 +451,7 @@ class MainActivity : ComponentActivity() {
 //        }
     }
 
-    fun sendTranslationRequest(context: Context,text:String, params: Map<String, String?>) {
+    fun sendTranslationRequest(context: Context, text: String, params: Map<String, String?>) {
         val url = "https://trrain4-web.letstalksign.org/get_translation"
 
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
@@ -431,7 +461,7 @@ class MainActivity : ComponentActivity() {
         mStringRequest = object : StringRequest(
             Method.POST, url,
             { response ->
-                println("response got from server1"+ response.toString())
+                println("response got from server1" + response.toString())
                 val gson = Gson()
                 val jsonObject: JsonObject = gson.fromJson(response, JsonObject::class.java)
                 println(jsonObject)
@@ -441,16 +471,17 @@ class MainActivity : ComponentActivity() {
                 println(error)
                 Log.i(ContentValues.TAG, "Error :" + error.networkResponse)
             }) {
-            override fun getParams():Map<String, String?> {
+            override fun getParams(): Map<String, String?> {
                 return params
             }
         }
 
         mRequestQueue!!.add(mStringRequest)
     }
+
     private fun getData(url: String) {
         println("yessssssssssssssssssssssssssssjbhvbdhbvhjbjdbhfg")
-        fileHandler.createAndWriteToFile("MainActivity "+"getData $url",fileName);
+        fileHandler.createAndWriteToFile("MainActivity " + "getData $url", fileName);
         // RequestQueue initialized
         mRequestQueue = Volley.newRequestQueue(this)
 
@@ -461,8 +492,11 @@ class MainActivity : ComponentActivity() {
                 // This code will be executed upon a successful response
                 println("response got from server")
                 println(response)
-                Bugfender.d("getData","respoonse from Server: $response");
-                fileHandler.createAndWriteToFile("getData "+"respoonse from Server: $response",fileName);
+                Bugfender.d("getData", "respoonse from Server: $response");
+                fileHandler.createAndWriteToFile(
+                    "getData " + "respoonse from Server: $response",
+                    fileName
+                );
 
             },
             { error ->
@@ -471,16 +505,18 @@ class MainActivity : ComponentActivity() {
                 println(error.message);
                 println(error.networkResponse);
                 println(url);
-                Bugfender.d("getData","error from Server: $error");
-                fileHandler.createAndWriteToFile("getData "+"error from Server: $error",fileName);
+                Bugfender.d("getData", "error from Server: $error");
+                fileHandler.createAndWriteToFile(
+                    "getData " + "error from Server: $error",
+                    fileName
+                );
 
             }) {
             override fun parseNetworkResponse(response: NetworkResponse): Response<String> {
                 val statusCode = response.statusCode
                 println("resssssssssssssssssssponssssssssssssseeeeeee code");
                 println("Response Code: $statusCode")
-                if(statusCode.toString()=="401")
-                {
+                if (statusCode.toString() == "401") {
                     sessionAlert(this@MainActivity);
                 }
                 return super.parseNetworkResponse(response)
@@ -492,10 +528,10 @@ class MainActivity : ComponentActivity() {
 
 
     fun sanitizeText(text: String): String {
-            Bugfender.d("MainActivity","sanitizeText");
-            Bugfender.d("sanitizeText",text);
-        fileHandler.createAndWriteToFile("MainActivity "+"sanitizeText",fileName);
-        fileHandler.createAndWriteToFile("sanitizeText_in "+text,fileName);
+        Bugfender.d("MainActivity", "sanitizeText");
+        Bugfender.d("sanitizeText", text);
+        fileHandler.createAndWriteToFile("MainActivity " + "sanitizeText", fileName);
+        fileHandler.createAndWriteToFile("sanitizeText_in " + text, fileName);
 
         var text0 = text.lowercase(Locale.ROOT)
         var sanitizedText = text0
@@ -504,10 +540,11 @@ class MainActivity : ComponentActivity() {
             sanitizedText = sanitizedText.replace(Regex("(?i)\\b$word\\b"), replacement)
             sanitizedText = sanitizedText.replace(Regex("(?i)\\n$word\\n"), replacement)
         }
-         Bugfender.d("sanitizeText",sanitizedText);
-        fileHandler.createAndWriteToFile("sanitizeText_out "+sanitizedText,fileName);
+        Bugfender.d("sanitizeText", sanitizedText);
+        fileHandler.createAndWriteToFile("sanitizeText_out " + sanitizedText, fileName);
         return sanitizedText
     }
+
     private val handlerfile = Handler()
     private val runnable = object : Runnable {
         override fun run() {
@@ -516,6 +553,7 @@ class MainActivity : ComponentActivity() {
             handlerfile.postDelayed(this, 60000) // 10 seconds delay
         }
     }
+
     override fun onResume() {
         super.onResume()
         handlerfile.postDelayed(runnable, 60000) // Start the runnable immediately
@@ -525,22 +563,22 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         handlerfile.removeCallbacks(runnable) // Stop the runnable when the activity is paused
     }
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        // Save token to savedInstanceState
-        outState.putString("token", token)
-        outState.putString("deviceId", deviceId)
-        outState.putString("userEmail", userEmail)
-    }
+//    override fun onSaveInstanceState(outState: Bundle) {
+//        super.onSaveInstanceState(outState)
+//        // Save token to savedInstanceState
+//        outState.putString("token", token)
+//        outState.putString("deviceId", deviceId)
+//        outState.putString("userEmail", userEmail)
+//    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val config: Configuration = resources.configuration
         secureTokenManager = SecureTokenManager(this)
-        deviceId= secureTokenManager.loadId().toString();
-        userEmail=secureTokenManager.loadEmail().toString()
-        token=secureTokenManager.loadToken().toString();
+        deviceId = secureTokenManager.loadId().toString();
+        userEmail = secureTokenManager.loadEmail().toString()
+        token = secureTokenManager.loadToken().toString();
         fileHandler = FileHandler(this)
         secureTokenManager = SecureTokenManager(this)
         // Example usage:
@@ -557,32 +595,32 @@ class MainActivity : ComponentActivity() {
         val fileContent = fileHandler.readFromFile(fileName)
         println(fileContent);
 
-        val file=File(this.filesDir, fileName);
+        val file = File(this.filesDir, fileName);
         if (savedInstanceState != null) {
             // Restore token from savedInstanceState
             token = savedInstanceState.getString("token", "")
-            deviceId=savedInstanceState.getString("deviceId", "")
-            userEmail=savedInstanceState.getString("userEmail", "")
+            deviceId = savedInstanceState.getString("deviceId", "")
+            userEmail = savedInstanceState.getString("userEmail", "")
         } else {
             // Initialize token if savedInstanceState is null
             token = secureTokenManager.loadToken().toString()
-            deviceId= secureTokenManager.loadId().toString();
-            userEmail=secureTokenManager.loadEmail().toString()
+            deviceId = secureTokenManager.loadId().toString();
+            userEmail = secureTokenManager.loadEmail().toString()
         }
         fileHandler.createAndWriteToFile("content1 ", fileName);
 //        Handler().postDelayed({
-        fileHandler.createAndWriteToFile("content2 ",fileName);
+        fileHandler.createAndWriteToFile("content2 ", fileName);
 
         registerReceiver(sessionMsg, IntentFilter("session_message"))
-        if (config.smallestScreenWidthDp >= 600) {
-            isTablet=true;
-            setContentView(com.example.aiish.R.layout.mainactivity_tablet)
-//            setContentView(R.layout.main_activity_tablet)
-        } else {
-            isTablet=false;
-            setContentView(R.layout.mainactivity)
+//        if (config.smallestScreenWidthDp >= 600) {
+//            isTablet=true;
+//            setContentView(com.example.aiish.R.layout.mainactivity_tablet)
+////            setContentView(R.layout.main_activity_tablet)
+//        } else {
+//            isTablet=false;
+        setContentView(R.layout.mainactivity)
 //            setContentView(R.layout.main_activity)
-        }
+        //     }
         val scale = resources.displayMetrics.density
         var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
         val languageSpinner: Spinner = findViewById(R.id.languageSpinner)
@@ -590,6 +628,7 @@ class MainActivity : ComponentActivity() {
         val languages = arrayOf(
             "English",
             "Kannada",
+            "Hindi"
         )
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("1056955407882-m2fv7ko571ndsu9bsh2irnbnb6354gb1.apps.googleusercontent.com")
@@ -599,13 +638,10 @@ class MainActivity : ComponentActivity() {
 
         var sadapter: ArrayAdapter<String>;
         // Create an ArrayAdapter using the string array and a default spinner layout
-        if(isTablet)
-        {
-             sadapter = ArrayAdapter(this, R.layout.spinner_iteam_tablet, languages);
-        }
-        else
-        {
-             sadapter = ArrayAdapter(this, R.layout.spinner_iteam, languages);
+        if (isTablet) {
+            sadapter = ArrayAdapter(this, R.layout.spinner_iteam_tablet, languages);
+        } else {
+            sadapter = ArrayAdapter(this, R.layout.spinner_iteam, languages);
         }
         var sortedAppInfos = mutableListOf<AppInfo>()
         // Specify the layout to use when the list of choices appears
@@ -634,21 +670,27 @@ class MainActivity : ComponentActivity() {
 //                        "Selected Language: $selectedLanguage",
 //                        Toast.LENGTH_SHORT
 //                    ).show();
-                if(selectedLanguage=="English") {
+                if (selectedLanguage == "English") {
                     language = "en-us";
                     options = TranslatorOptions.Builder()
                         .setSourceLanguage(TranslateLanguage.ENGLISH)
                         .setTargetLanguage(TranslateLanguage.ENGLISH)
                         .build()
-                }
-                else if(selectedLanguage=="Kannada") {
+                } else if (selectedLanguage == "Kannada") {
                     language = "kn-IN";
                     options = TranslatorOptions.Builder()
                         .setSourceLanguage(TranslateLanguage.KANNADA)
                         .setTargetLanguage(TranslateLanguage.ENGLISH)
                         .build()
                 }
-                 englishGermanTranslator = Translation.getClient(options)
+                else if (selectedLanguage == "Hindi") {
+                    language = "Hi-IN";
+                    options = TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.HINDI)
+                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .build()
+                }
+                englishGermanTranslator = Translation.getClient(options)
             }
 
             override fun onNothingSelected(parentView: AdapterView<*>?) {
@@ -656,16 +698,16 @@ class MainActivity : ComponentActivity() {
             }
         }
         var profilePicUriString = intent.getStringExtra("profilepic");
-        var profilePicUri="";
-        if(getProfilePicUri()!=null)
+        var profilePicUri = "";
+        if (getProfilePicUri() != null)
             profilePicUri = Uri.parse(getProfilePicUri()).toString();
         val imageViewProfilePicture = findViewById<ImageView>(R.id.profile_ic)
         if (profilePicUri != null) {
-            Bugfender.d("MainActivity","profilePicUri");
-            fileHandler.createAndWriteToFile("MainActivity "+"profilePicUri",fileName);
-            Bugfender.d("profilePicUri",profilePicUri);
-            fileHandler.createAndWriteToFile("profilePicUri "+profilePicUri,fileName);
-            println("profile pic uri-"+profilePicUri);
+            Bugfender.d("MainActivity", "profilePicUri");
+            fileHandler.createAndWriteToFile("MainActivity " + "profilePicUri", fileName);
+            Bugfender.d("profilePicUri", profilePicUri);
+            fileHandler.createAndWriteToFile("profilePicUri " + profilePicUri, fileName);
+            println("profile pic uri-" + profilePicUri);
             Glide.with(this)
                 .load(profilePicUri)
                 .placeholder(R.drawable.ic_profile) // Placeholder image while loading
@@ -674,8 +716,8 @@ class MainActivity : ComponentActivity() {
                 .into(imageViewProfilePicture)
         }
         imageViewProfilePicture.setOnClickListener {
-               Bugfender.d("MainActivity","imageViewProfilePicture");
-                fileHandler.createAndWriteToFile("MainActivity "+"imageViewProfilePicture",fileName);
+            Bugfender.d("MainActivity", "imageViewProfilePicture");
+            fileHandler.createAndWriteToFile("MainActivity " + "imageViewProfilePicture", fileName);
             openDrawer();
         }
 
@@ -707,7 +749,10 @@ class MainActivity : ComponentActivity() {
         webView.webViewClient = WebViewClient()
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                fileHandler.createAndWriteToFile("WebView Console.log "+consoleMessage.sourceId() + " " + consoleMessage.lineNumber() + " " + consoleMessage.message(),fileName);
+                fileHandler.createAndWriteToFile(
+                    "WebView Console.log " + consoleMessage.sourceId() + " " + consoleMessage.lineNumber() + " " + consoleMessage.message(),
+                    fileName
+                );
                 Log.d(
                     "WebView Console.log",
                     consoleMessage.sourceId() + " " + consoleMessage.lineNumber() + " " + consoleMessage.message()
@@ -717,7 +762,7 @@ class MainActivity : ComponentActivity() {
         }
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidInterface")
-        if(isTablet) {
+        if (isTablet) {
             webView.setInitialScale(310);
         }
         val webviewTitle: TextView = findViewById(R.id.title_webview_text);
@@ -725,8 +770,8 @@ class MainActivity : ComponentActivity() {
         val text_button: ImageView = findViewById(R.id.webview_text_ic);
         val text_title: TextView = findViewById(R.id.texttitle);
         tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
-        if(!isTablet) {
-            fileHandler.createAndWriteToFile("MainActivity "+"!isTablet",fileName);
+        if (!isTablet) {
+            fileHandler.createAndWriteToFile("MainActivity " + "!isTablet", fileName);
             iv_mic.layoutParams.width = (35 * scale + 0.5f).toInt();
             text_button.layoutParams.width = (35 * scale + 0.5f).toInt();
             scanButton.layoutParams.width = (35 * scale + 0.5f).toInt();
@@ -735,10 +780,10 @@ class MainActivity : ComponentActivity() {
 //            var content="ಅಂಬೇಡ್ಕರ್ ರವರಿಗೆ ಗೌತಮ ಬುದ್ಧನ ಪ್ರಭಾವ ಎಷ್ಟಿತ್ತೆಂದರೆ ಅವರು ಎಂತಹ ಅಪಮಾನಗಳು ಎದುರಿಸಿದರೂ ಸಹ ಎಲ್ಲಿಯೂ ಅದನ್ನು ಹಿಂಸಾತ್ಮಕ ರೂಪದಲ್ಲಿ ಪ್ರತಿರೋಧಿಸಲಿಲ್ಲ. ಇವರು ಗೌತಮ ಬುದ್ಧನ ಅಪ್ಪಟ ಅನುಯಾಯಿಗಳಾಗಿದ್ದು ತಮ್ಮ ಜೀವಿತದ ಉದ್ದಕ್ಕೂ ಅಹಿಂಸೆಯನ್ನು ಪ್ರತಿಪಾದಿಸಿದರು. ಹಿಂಸಾಚಾರ ಎಂಬುದು ನಾಗರೀಕ ಜೀವನಕ್ಕೆ ಅಡ್ಡಿಯನ್ನುಂಟುಮಾಡುತ್ತದೆ ಎಂದು ತಿಳಿಸಿದರು. ಚೌಡರ್ ಕೆರೆಯ ನೀರನ್ನು ಮುಟ್ಟುವ ಚಳುವಳಿ (1927), ಕಲಾರಾಮ ದೇವಾಲಯ ಪ್ರವೇಶ ಚಳುವಳಿ (1929), ಪೂನಾ ಒಪ್ಪಂದ (1932)"
 //            sendGPTTranslationRequest(content);
             Bugfender.d("MainActivity ", "text_button")
-            fileHandler.createAndWriteToFile("MainActivity "+"text_button",fileName);
+            fileHandler.createAndWriteToFile("MainActivity " + "text_button", fileName);
             println("tokennnnnnnnnnnnn");
             println(token);
-            getData("https://trrain4-web.letstalksign.org/app_log?mode=text_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
+            getData("https://trrain4-web.letstalksign.org/app_log?mode=text_opened&language=$selectedLanguage&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token");
             webviewTitle.text = "Entered Text:";
             val text_button: ImageView = findViewById(R.id.webview_text_ic)
             val text_title: TextView = findViewById(R.id.texttitle)
@@ -748,44 +793,42 @@ class MainActivity : ComponentActivity() {
                 val density = resources.displayMetrics.density
                 return (dp * density).toInt()
             }
+
             val mic_button: ImageView = findViewById(R.id.webview_mic_ic)
             val mic_title: TextView = findViewById(R.id.speakTitle)
 
-            if(isTablet)
-            {
-                fileHandler.createAndWriteToFile("MainActivity "+"isTablet",fileName);
+            if (isTablet) {
+                fileHandler.createAndWriteToFile("MainActivity " + "isTablet", fileName);
                 text_title.setTextSize(30F)
-                text_button.layoutParams.height=dpToPx(65);
-                text_button.layoutParams.width=dpToPx(65);
-                mic_button.layoutParams.height=dpToPx(55) // Increase height by 10dp
-                mic_button.layoutParams.width=dpToPx(55)
+                text_button.layoutParams.height = dpToPx(65);
+                text_button.layoutParams.width = dpToPx(65);
+                mic_button.layoutParams.height = dpToPx(55) // Increase height by 10dp
+                mic_button.layoutParams.width = dpToPx(55)
                 mic_title.setTextSize(25F)
                 scan_title.setTextSize(25F)
-                scan_button.layoutParams.height=dpToPx(55)
-                scan_button.layoutParams.width=dpToPx(55);
+                scan_button.layoutParams.height = dpToPx(55)
+                scan_button.layoutParams.width = dpToPx(55);
 
-            }
-            else
-            {
-                fileHandler.createAndWriteToFile("MainActivity "+"notisTablet",fileName);
+            } else {
+                fileHandler.createAndWriteToFile("MainActivity " + "notisTablet", fileName);
                 text_title.setTextSize(18F)
-                text_button.layoutParams.height=dpToPx(42);
-                text_button.layoutParams.width=dpToPx(42);
-                mic_button.layoutParams.height=dpToPx(35) // Increase height by 10dp
-                mic_button.layoutParams.width=dpToPx(35)
+                text_button.layoutParams.height = dpToPx(42);
+                text_button.layoutParams.width = dpToPx(42);
+                mic_button.layoutParams.height = dpToPx(35) // Increase height by 10dp
+                mic_button.layoutParams.width = dpToPx(35)
                 mic_title.setTextSize(15F)
                 scan_title.setTextSize(15F)
-                scan_button.layoutParams.height=dpToPx(35)
-                scan_button.layoutParams.width=dpToPx(35);
+                scan_button.layoutParams.height = dpToPx(35)
+                scan_button.layoutParams.width = dpToPx(35);
             }
             tv_Speech_to_text.setText("Click the text button above to type text and initiate interpretation.")
-            showPopupWithEditText("","Text to Interpret")
+            showPopupWithEditText("", "Text to Interpret")
         }
         iv_mic?.let { micButton ->
             micButton.setOnClickListener(View.OnClickListener {
-                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_opened&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
-                Bugfender.d("MainActivity","micButton");
-                fileHandler.createAndWriteToFile("MainActivity "+"micButton",fileName);
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_opened&language=$selectedLanguage&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                Bugfender.d("MainActivity", "micButton");
+                fileHandler.createAndWriteToFile("MainActivity " + "micButton", fileName);
 
                 val text_button: ImageView = findViewById(R.id.webview_text_ic)
                 val text_title: TextView = findViewById(R.id.texttitle)
@@ -795,37 +838,35 @@ class MainActivity : ComponentActivity() {
                     val density = resources.displayMetrics.density
                     return (dp * density).toInt()
                 }
+
                 val mic_button: ImageView = findViewById(R.id.webview_mic_ic)
                 val mic_title: TextView = findViewById(R.id.speakTitle)
 
-                if(isTablet)
-                {
-                    fileHandler.createAndWriteToFile("micButton "+"isTablet",fileName);
+                if (isTablet) {
+                    fileHandler.createAndWriteToFile("micButton " + "isTablet", fileName);
 
                     text_title.setTextSize(25F)
-                    text_button.layoutParams.height=dpToPx(55);
-                    text_button.layoutParams.width=dpToPx(55);
-                    mic_button.layoutParams.height=dpToPx(65) // Increase height by 10dp
-                    mic_button.layoutParams.width=dpToPx(65)
+                    text_button.layoutParams.height = dpToPx(55);
+                    text_button.layoutParams.width = dpToPx(55);
+                    mic_button.layoutParams.height = dpToPx(65) // Increase height by 10dp
+                    mic_button.layoutParams.width = dpToPx(65)
                     mic_title.setTextSize(30F)
                     scan_title.setTextSize(25F)
-                    scan_button.layoutParams.height=dpToPx(55)
-                    scan_button.layoutParams.width=dpToPx(55);
+                    scan_button.layoutParams.height = dpToPx(55)
+                    scan_button.layoutParams.width = dpToPx(55);
 
-                }
-                else
-                {
-                    fileHandler.createAndWriteToFile("micButton "+"notisTablet",fileName);
+                } else {
+                    fileHandler.createAndWriteToFile("micButton " + "notisTablet", fileName);
 
                     text_title.setTextSize(15F)
-                    text_button.layoutParams.height=dpToPx(35);
-                    text_button.layoutParams.width=dpToPx(35);
-                    mic_button.layoutParams.height=dpToPx(42) // Increase height by 10dp
-                    mic_button.layoutParams.width=dpToPx(42)
+                    text_button.layoutParams.height = dpToPx(35);
+                    text_button.layoutParams.width = dpToPx(35);
+                    mic_button.layoutParams.height = dpToPx(42) // Increase height by 10dp
+                    mic_button.layoutParams.width = dpToPx(42)
                     mic_title.setTextSize(18F)
                     scan_title.setTextSize(15F)
-                    scan_button.layoutParams.height=dpToPx(35)
-                    scan_button.layoutParams.width=dpToPx(35);
+                    scan_button.layoutParams.height = dpToPx(35)
+                    scan_button.layoutParams.width = dpToPx(35);
                 }
                 webviewTitle.setText("Spoken Text:")
                 tv_Speech_to_text.setText("Click the mic button above perform speach to sign interpretation.")
@@ -856,9 +897,9 @@ class MainActivity : ComponentActivity() {
         cameraActivityResultLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            Bugfender.d("Scan","Camera activity launcher");
-            Bugfender.d("ScanResult",result.toString());
-            Bugfender.d("ScanResult",result.resultCode.toString()+imageUri.toString());
+            Bugfender.d("Scan", "Camera activity launcher");
+            Bugfender.d("ScanResult", result.toString());
+            Bugfender.d("ScanResult", result.resultCode.toString() + imageUri.toString());
 
             if (result.resultCode == Activity.RESULT_OK) {
                 // Bugfender.d("ImageOK",imageUri.toString());
@@ -866,12 +907,12 @@ class MainActivity : ComponentActivity() {
                 // Handle the result here
                 // The captured image is usually available via the 'imageUri' property
             } else {
-                Bugfender.e("ScanError",result.toString());
+                Bugfender.e("ScanError", result.toString());
             }
         }
 //        scanButton.setOnClickListener{
 //            Bugfender.d("MainActivity","scanButton");
-        //    getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_opened&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+        //    getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_opened&language=english&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token")
 //            webviewTitle.setText("Scanned Text:");
 //            val text_button: ImageView = findViewById(R.id.webview_text_ic)
 //            val text_title: TextView = findViewById(R.id.texttitle)
@@ -918,32 +959,57 @@ class MainActivity : ComponentActivity() {
         val navigationView = findViewById<NavigationView>(R.id.navigationView)
 
         navigationView.setNavigationItemSelectedListener { menuItem ->
-            Bugfender.d("MainActivity","navigationView.setNavigationItemSelectedListener");
-            fileHandler.createAndWriteToFile("MainActivity "+"navigationView.setNavigationItemSelectedListener",fileName);
+            Bugfender.d("MainActivity", "navigationView.setNavigationItemSelectedListener");
+            fileHandler.createAndWriteToFile(
+                "MainActivity " + "navigationView.setNavigationItemSelectedListener",
+                fileName
+            );
             when (menuItem.itemId) {
                 R.id.nav_settings -> {
                     openAccessibilitySettings();
-                    fileHandler.createAndWriteToFile("MainActivity "+"openAccessibilitySettings",fileName)
+                    fileHandler.createAndWriteToFile(
+                        "MainActivity " + "openAccessibilitySettings",
+                        fileName
+                    )
                     println("sssssssssseeeeeeeeeeeeeeeeetttttttttttttttttt");
                     // Handle settings click
                     // Add your logic here
                     true
                 }
+
                 R.id.nav_logout -> {
-                    fileHandler.createAndWriteToFile("MainActivity "+"showLogoutAlert();",fileName)
+                    fileHandler.createAndWriteToFile(
+                        "MainActivity " + "showLogoutAlert();",
+                        fileName
+                    )
                     showLogoutAlert();
 
                     // Handle logout click
                     // Add your logic here
                     true
                 }
+
                 else -> false
             }
         }
 
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        Bugfender.d("MainActivity", "onSaveInstanceState")
+        outState.putString("token", token)
+        outState.putString("deviceId", deviceId)
+        outState.putString("userEmail", userEmail)
+    }
 
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        Bugfender.d("ImageUriff", imageUri.toString())
+        token = savedInstanceState.getString("token").toString()
+        deviceId = savedInstanceState.getString("deviceId").toString()
+        userEmail = savedInstanceState.getString("userEmail").toString()
+    }
 
     override fun onActivityResult(
         requestCode: Int, resultCode: Int,
@@ -952,47 +1018,75 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE_SPEECH_INPUT) {
             Bugfender.d("MainActivity", "onActivityResult")
-            fileHandler.createAndWriteToFile("MainActivity "+"onActivityResult();",fileName)
+            fileHandler.createAndWriteToFile("MainActivity " + "onActivityResult();", fileName)
             if (resultCode == RESULT_OK && data != null) {
                 val result = data.getStringArrayListExtra(
                     RecognizerIntent.EXTRA_RESULTS
                 )
                 var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text)
                 tv_Speech_to_text!!.visibility = View.VISIBLE
-                if(selectedLanguage!="English")
-                {
-                    fileHandler.createAndWriteToFile("onActivityResult() "+"selectedLanguage!=\"English\";",fileName)
+                if (selectedLanguage != "English") {
+                    fileHandler.createAndWriteToFile(
+                        "onActivityResult() " + "selectedLanguage!=\"English\";",
+                        fileName
+                    )
                     val progressDialog = ProgressDialog(this@MainActivity)
                     progressDialog.setMessage("Translating...")
                     progressDialog.setCancelable(false)
                     progressDialog.show()
-                    token=secureTokenManager.loadToken().toString();
-                    deviceId= secureTokenManager.loadId().toString();
-                    userEmail=secureTokenManager.loadEmail().toString()
+                    token = secureTokenManager.loadToken().toString();
+                    deviceId = secureTokenManager.loadId().toString();
+                    userEmail = secureTokenManager.loadEmail().toString()
 
                     // Make the translation request
-                    val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to " " + Objects.requireNonNull(result)?.get(0),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
-                    fileHandler.createAndWriteToFile("onActivityResult() selectedLanguage!=\"English\\ "+params.toString(),fileName)
+                    val params = mapOf(
+                        "token" to token.toString(),
+                        "maxWordCount" to "50",
+                        "fromLang" to "Hindi",
+                        "toLang" to "english",
+                        "textToTranslate" to " " + Objects.requireNonNull(result)?.get(0),
+                        "customer_id" to "10016",
+                        "device_id" to deviceId,
+                        "gmail_id" to userEmail
+                    )
+                    fileHandler.createAndWriteToFile(
+                        "onActivityResult() selectedLanguage!=\"English\\ " + params.toString(),
+                        fileName
+                    )
                     //     sendTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params);
-                    sendGPTTranslationRequest(this," " + Objects.requireNonNull(result)?.get(0),params) { translatedText ->
+                    sendGPTTranslationRequest(
+                        this,
+                        " " + Objects.requireNonNull(result)?.get(0),
+                        params
+                    ) { translatedText ->
                         // Dismiss the progress dialog
                         progressDialog.dismiss()
 
                         if (translatedText == "Translation failed" || translatedText == "Unexpected error please check your internet connection and try again!") {
-                            Toast.makeText(this@MainActivity, translatedText, Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, translatedText, Toast.LENGTH_LONG)
+                                .show()
                         } else {
                             if (translatedText != null) {
-                                fileHandler.createAndWriteToFile("onActivityResult() selectedLanguage!=\"English\\ "+translatedText,fileName)
+                                fileHandler.createAndWriteToFile(
+                                    "onActivityResult() selectedLanguage!=\"English\\ " + translatedText,
+                                    fileName
+                                )
                                 showPopupWithEditText(translatedText, "Recognised Text")
                             }
                         }
                     }
 
                     println("hjbdsvhfdsbvyfbvgyfbvdfbbfyggdfnjnfj uuhujnjn")
-                }
-                else{
-                    fileHandler.createAndWriteToFile("onActivityResult() else "+Objects.requireNonNull(result)?.get(0),fileName)
-                    showPopupWithEditText(" " + Objects.requireNonNull(result)?.get(0), "Recognised Text")
+                } else {
+                    fileHandler.createAndWriteToFile(
+                        "onActivityResult() else " + Objects.requireNonNull(
+                            result
+                        )?.get(0), fileName
+                    )
+                    showPopupWithEditText(
+                        " " + Objects.requireNonNull(result)?.get(0),
+                        "Recognised Text"
+                    )
                 }
 
                 // Show loading progress dialog
@@ -1043,22 +1137,22 @@ class MainActivity : ComponentActivity() {
 //    }
     private fun openAccessibilitySettings() {
         Bugfender.d("MainActivity", "openNormalSettings")
-        fileHandler.createAndWriteToFile("MainActivity "+"openNormalSettings",fileName)
+        fileHandler.createAndWriteToFile("MainActivity " + "openNormalSettings", fileName)
         val intent = Intent(Settings.ACTION_SETTINGS)
         startActivityForResult(intent, 1)
     }
 
     private fun showLogoutAlert() {
-        Bugfender.d("MainActivity","showLogoutAlert");
-        fileHandler.createAndWriteToFile("MainActivity "+"showLogoutAlert",fileName)
+        Bugfender.d("MainActivity", "showLogoutAlert");
+        fileHandler.createAndWriteToFile("MainActivity " + "showLogoutAlert", fileName)
         val builder = AlertDialog.Builder(this)
 
         builder.setTitle("Logout")
         builder.setMessage("Are you sure you want to logout?")
 
         builder.setPositiveButton("Yes") { _: DialogInterface, _: Int ->
-            Bugfender.d("showLogoutAlert","Yes");
-            fileHandler.createAndWriteToFile("showLogoutAlert "+"Yes",fileName)
+            Bugfender.d("showLogoutAlert", "Yes");
+            fileHandler.createAndWriteToFile("showLogoutAlert " + "Yes", fileName)
             val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.clear()
@@ -1066,14 +1160,14 @@ class MainActivity : ComponentActivity() {
             mGoogleSignInClient.signOut().addOnCompleteListener {
                 val intent = Intent(this, Signin_page::class.java)
                 Toast.makeText(this, "Logging Out", Toast.LENGTH_SHORT).show();
-                getData("https://trrain4-web.letstalksign.org/app_log?mode=logout&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token");
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=logout&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token");
                 startActivity(intent)
                 finish()
             }
         }
 
         builder.setNegativeButton("Cancel") { dialog: DialogInterface, _: Int ->
-            Bugfender.d("showLogoutAlert","Cancel");
+            Bugfender.d("showLogoutAlert", "Cancel");
             dialog.dismiss()
         }
 
@@ -1082,16 +1176,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showProgressDialog() {
-        Bugfender.d("MainActivity","showProgressDialog");
-        fileHandler.createAndWriteToFile("MainActivity "+"showProgressDialog",fileName)
+        Bugfender.d("MainActivity", "showProgressDialog");
+        fileHandler.createAndWriteToFile("MainActivity " + "showProgressDialog", fileName)
         progressDialog = ProgressDialog(this)
         progressDialog?.setMessage("Downloading translation model please wait this may take few seconds...")
         progressDialog?.setCancelable(false)
         progressDialog?.show()
     }
+
     private fun dismissProgressDialog() {
-        Bugfender.d("MainActivity","dismissProgressDialog");
-        fileHandler.createAndWriteToFile("MainActivity "+"dismissProgressDialog",fileName)
+        Bugfender.d("MainActivity", "dismissProgressDialog");
+        fileHandler.createAndWriteToFile("MainActivity " + "dismissProgressDialog", fileName)
         progressDialog?.dismiss()
         progressDialog = null
     }
@@ -1119,14 +1214,16 @@ class MainActivity : ComponentActivity() {
                 callback("Model download failed")
             }
     }
+
     fun isAscii(char: Char): Boolean {
         val codePoint = char.toInt()
-        return codePoint in 0..127
+        return (codePoint in 97..122) || (codePoint in 65..90)
     }
+
     @SuppressLint("MissingInflatedId", "SetTextI18n")
-    private fun showPopupWithEditText(initialText: CharSequence, Title:String) {
-        Bugfender.d("MainActivity","showPopupWithEditText");
-        fileHandler.createAndWriteToFile("MainActivity "+"showPopupWithEditText",fileName);
+    private fun showPopupWithEditText(initialText: CharSequence, Title: String) {
+        Bugfender.d("MainActivity", "showPopupWithEditText");
+        fileHandler.createAndWriteToFile("MainActivity " + "showPopupWithEditText", fileName);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         val builder = AlertDialog.Builder(this)
         val layout = layoutInflater.inflate(R.layout.popup_layout, null)
@@ -1168,7 +1265,7 @@ class MainActivity : ComponentActivity() {
                 before: Int,
                 count: Int
             ) {
-                val englishNote= layout.findViewById<TextView>(R.id.EnglishNote);
+                val englishNote = layout.findViewById<TextView>(R.id.EnglishNote);
                 // Calculate the current word count
                 val words = charSequence?.trim()?.split(Regex("\\s+"))
                 currentWordCount = words?.size ?: 0
@@ -1186,37 +1283,47 @@ class MainActivity : ComponentActivity() {
                     //interpretButton.setBackgroundColor("")
                     //ReadyFlag = false
                 }
-                if (interpretButton.text == "Interpret" && remainingWordCount >= 0 ) {
+                if (interpretButton.text == "Interpret" && remainingWordCount >= 0) {
                     interpretButton.isEnabled = true
-                    englishNote.visibility=View.GONE;
+                    englishNote.visibility = View.GONE;
 
                 }
-                if(charSequence?.length==0 || charSequence.isNullOrBlank())
-                {
+                if (charSequence?.length == 0 || charSequence.isNullOrBlank()) {
                     interpretButton.isEnabled = false
                 }
-                if(selectedLanguage=="Kannada" && Title == "Text to Interpret")
-                {
+                if (selectedLanguage == "Kannada" && Title == "Text to Interpret") {
                     if (words?.isNotEmpty() == true) {
-                        for(word in words) {
+                        for (word in words) {
                             for (char in word) {
                                 if (isAscii(char)) {
                                     englishNote.setText("Note: Kannada language is chosen. Please type Kannada sentences.")
-                                    englishNote.visibility=View.VISIBLE;
+                                    englishNote.visibility = View.VISIBLE;
                                     interpretButton.isEnabled = false
                                     break;
                                 }
                             }
                         }
                     }
-                }
-                else if(selectedLanguage=="English" && Title == "Text to Interpret"){
+                } else if (selectedLanguage == "Hindi" && Title == "Text to Interpret") {
                     if (words?.isNotEmpty() == true) {
-                        for(word in words) {
+                        for (word in words) {
+                            for (char in word) {
+                                if (isAscii(char)) {
+                                    englishNote.setText("Note: Hindi language is chosen. Please type Gindi sentences.")
+                                    englishNote.visibility = View.VISIBLE;
+                                    interpretButton.isEnabled = false
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if (selectedLanguage == "English" && Title == "Text to Interpret") {
+                    if (words?.isNotEmpty() == true) {
+                        for (word in words) {
                             for (char in word) {
                                 if (!isAscii(char)) {
                                     englishNote.setText("Note:English language is chosen. Please type English sentences.")
-                                    englishNote.visibility=View.VISIBLE;
+                                    englishNote.visibility = View.VISIBLE;
                                     interpretButton.isEnabled = false
                                     break;
                                 }
@@ -1243,7 +1350,7 @@ class MainActivity : ComponentActivity() {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
-            titletext.toString() + "i.e " + "Halō for " + "హలో. This feature only works on selected keybords like Gboard."
+                titletext.toString() + "i.e " + "Halō for " + "హలో. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("te", "IN")))
         } else if (selectedLanguage == "Kannada") {
@@ -1259,7 +1366,7 @@ class MainActivity : ComponentActivity() {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
-            titletext.toString() + "i.e " + "namaste for " + "नमस्ते. This feature only works on selected keybords like Gboard."
+                titletext.toString() + "i.e " + "namaste for " + "नमस्ते. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("hi", "IN")))
         } else if (selectedLanguage == "Gujarati") {
@@ -1276,8 +1383,7 @@ class MainActivity : ComponentActivity() {
                 titletext.toString() + "i.e " + "Namaskāra for " + "नमस्कार. This feature only works on selected keybords like Gboard."
             languagetext.setText(titletext);
             editText.setImeHintLocales(LocaleList(Locale("mr", "IN")))
-        }
-        else if (selectedLanguage == "Bengali") {
+        } else if (selectedLanguage == "Bengali") {
             titletext = ogtext;
             languagetext.visibility = View.VISIBLE;
             titletext =
@@ -1339,34 +1445,73 @@ class MainActivity : ComponentActivity() {
         val dialog = builder.create();
         dialog.show();
         interpretButton.setOnClickListener {
-            fileHandler.createAndWriteToFile("MainActivity "+"interpretButton",fileName);
+            deviceId = secureTokenManager.loadId().toString();
+            userEmail = secureTokenManager.loadEmail().toString()
+            token = secureTokenManager.loadToken().toString();
+            fileHandler.createAndWriteToFile("MainActivity " + "interpretButton", fileName);
             if (Title == "Scanned Text") {
-                getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_interpreted&language=english&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=scan_interpreted&language=english&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             } else if (Title == "Text to Interpret") {
-                getData("https://trrain4-web.letstalksign.org/app_log?mode=text_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=text_interpreted&language=$selectedLanguage&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             } else if (Title == "Recognised Text") {
-                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_interpreted&language=$selectedLanguage&customer_id=10009&device_id=$deviceId&gmail_id=$userEmail&token=$token")
+                getData("https://trrain4-web.letstalksign.org/app_log?mode=audio_interpreted&language=$selectedLanguage&customer_id=10016&device_id=$deviceId&gmail_id=$userEmail&token=$token")
             }
-            if (selectedLanguage != "English" && Title=="Text to Interpret") {
-                fileHandler.createAndWriteToFile("MainActivity "+"selectedLanguage != \"English\" && Title==\"Text to Interpret\"",fileName);
+            if (selectedLanguage != "English" && Title == "Text to Interpret") {
+                fileHandler.createAndWriteToFile(
+                    "MainActivity " + "selectedLanguage != \"English\" && Title==\"Text to Interpret\"",
+                    fileName
+                );
                 val progressDialog = ProgressDialog(this@MainActivity)
                 progressDialog.setMessage("Translating...")
                 progressDialog.setCancelable(false)
                 progressDialog.show()
-                if(token==null || deviceId==null || userEmail=="")
-                {
-                    deviceId= secureTokenManager.loadId().toString();
-                    userEmail=secureTokenManager.loadEmail().toString()
-                    token=secureTokenManager.loadToken().toString();
+//                if(token==null || deviceId==null || userEmail=="")
+//                {
+                deviceId = secureTokenManager.loadId().toString();
+                userEmail = secureTokenManager.loadEmail().toString()
+                token = secureTokenManager.loadToken().toString();
+                //    }
+//                if(token.isNullOrEmpty())
+//                    token=Globals.token
+//                if(userEmail.isNullOrEmpty())
+//                    userEmail=Globals.email
+//                if(deviceId.isNullOrEmpty())
+//                    deviceId=Globals.deviceId;
+                var params: Map<String, String> = mapOf();
+                if (selectedLanguage == "Kannada") {
+                    params = mapOf(
+                        "token" to token.toString(),
+                        "maxWordCount" to "50",
+                        "fromLang" to "Kannada",
+                        "toLang" to "english",
+                        "textToTranslate" to editText.text.toString(),
+                        "customer_id" to "10016",
+                        "device_id" to deviceId,
+                        "gmail_id" to userEmail
+                    )
+                } else if (selectedLanguage == "Hindi") {
+                    params = mapOf(
+                        "token" to token.toString(),
+                        "maxWordCount" to "50",
+                        "fromLang" to "Hindi",
+                        "toLang" to "english",
+                        "textToTranslate" to editText.text.toString(),
+                        "customer_id" to "10016",
+                        "device_id" to deviceId,
+                        "gmail_id" to userEmail
+                    )
+
                 }
-                val params= mapOf("token" to token.toString(),"maxWordCount" to "50","fromLang" to "kannada","toLang" to "english","textToTranslate" to editText.text.toString(),"customer_id" to "10016", "device_id" to deviceId,"gmail_id" to userEmail)
-                fileHandler.createAndWriteToFile("selectedLanguage "+params.toString(),fileName);
-                sendGPTTranslationRequest(this,editText.text.toString(),params) { text ->
+                fileHandler.createAndWriteToFile("selectedLanguage " + params.toString(), fileName);
+                sendGPTTranslationRequest(this, editText.text.toString(), params) { text ->
                     progressDialog.dismiss();
                     Transcribetext = text
-                    fileHandler.createAndWriteToFile("sendGPTTranslationRequestTrans "+Transcribetext.toString(),fileName);
+                    fileHandler.createAndWriteToFile(
+                        "sendGPTTranslationRequestTrans " + Transcribetext.toString(),
+                        fileName
+                    );
                     println("translated text" + text);
-                    Bugfender.d("MainAcEdittextPopup",text.toString());
+                    Bugfender.d("MainAcEdittextPopup", text.toString());
                     var ftext = text
                     ftext = ftext.replace("\n", "");
                     ftext = ftext.replace("\b", "");
@@ -1386,51 +1531,56 @@ class MainActivity : ComponentActivity() {
                         webView.evaluateJavascript(jsCode, null)
                     }
                 }
-            }
-            else {
-                Bugfender.d("EditText",editText.text.toString());
+            } else {
+                Bugfender.d("EditText", editText.text.toString());
 
-                fileHandler.createAndWriteToFile("EditText "+editText.text.toString(),fileName);
+                fileHandler.createAndWriteToFile("EditText " + editText.text.toString(), fileName);
                 println(editText.text);
                 Transcribetext = editText.text.toString();
                 var ftext = editText.text.toString()
                 ftext = ftext.replace("\n", "");
                 ftext = ftext.replace("\b", "");
                 var tv_Speech_to_text = findViewById<TextView>(R.id.webview_text);
-                var sanitized_text="";
+                var sanitized_text = "";
                 println("wefhibgufhdvbhfdbhjbhjsd");
-                sanitized_text=sanitizeText(ftext)
+                sanitized_text = sanitizeText(ftext)
                 if (!ReadyFlag) {
-                    Transcribetext=sanitized_text;
-                    fileHandler.createAndWriteToFile("EditText "+Transcribetext.toString(),fileName);
+                    Transcribetext = sanitized_text;
+                    fileHandler.createAndWriteToFile(
+                        "EditText " + Transcribetext.toString(),
+                        fileName
+                    );
                     println("djncjsdjcsbdhjbsjhbs")
                     tv_Speech_to_text?.setText("Please wait the model is loading...!")
                     tv_Speech_to_text?.setTextColor(Color.parseColor("#FF0000"))
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 } else {
 
-                    sanitized_text=sanitizeText(ftext)
-                    fileHandler.createAndWriteToFile("EditText "+sanitized_text.toString(),fileName)
+                    sanitized_text = sanitizeText(ftext)
+                    fileHandler.createAndWriteToFile(
+                        "EditText " + sanitized_text.toString(),
+                        fileName
+                    )
                     tv_Speech_to_text?.setTextColor(Color.parseColor("#808080"))
                     tv_Speech_to_text?.setText(sanitized_text);
                     tv_Speech_to_text?.visibility = View.VISIBLE;
                 }
-                if(ReadyFlag)
-                {
-                    if(sanitized_text!=ftext.toLowerCase())
-                    {
+                if (ReadyFlag) {
+                    if (sanitized_text != ftext.toLowerCase()) {
                         println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
                         println(sanitized_text)
-                        fileHandler.createAndWriteToFile("sanitized_text!=ftext.toLowerCase() "+sanitized_text.toString(),fileName)
+                        fileHandler.createAndWriteToFile(
+                            "sanitized_text!=ftext.toLowerCase() " + sanitized_text.toString(),
+                            fileName
+                        )
                         println(ftext);
-                        var errortext="Exclude inappropriate words for interpretation."
+                        var errortext = "Exclude inappropriate words for interpretation."
                         val jsCode = "sendMessage(\"${errortext}\")";
                         println(jsCode);
                         webView.evaluateJavascript(jsCode, null)
                         dialog.dismiss()
-                    }
-                    else{
-                        fileHandler.createAndWriteToFile("showpopup "+sanitized_text,fileName)
+                    } else {
+                        fileHandler.createAndWriteToFile("showpopup " + sanitized_text, fileName)
                         println(sanitized_text)
                         println(ftext);
                         val jsCode = "sendMessage(\"${sanitized_text}\")";
@@ -1438,29 +1588,31 @@ class MainActivity : ComponentActivity() {
                         webView.evaluateJavascript(jsCode, null)
                         dialog.dismiss()
                     }
-                }
-                else
-                {
-                    if(sanitized_text!=ftext.toLowerCase())
-                    {
+                } else {
+                    if (sanitized_text != ftext.toLowerCase()) {
                         println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
                         println(sanitized_text)
-                        fileHandler.createAndWriteToFile("sanitized_text "+sanitized_text,fileName)
-                        fileHandler.createAndWriteToFile("ftext "+ftext,fileName)
+                        fileHandler.createAndWriteToFile(
+                            "sanitized_text " + sanitized_text,
+                            fileName
+                        )
+                        fileHandler.createAndWriteToFile("ftext " + ftext, fileName)
                         println(ftext);
-                        var errortext="Exclude inappropriate words for interpretation."
-                        Transcribetext="Exclude inappropriate words for interpretation."
+                        var errortext = "Exclude inappropriate words for interpretation."
+                        Transcribetext = "Exclude inappropriate words for interpretation."
 //                        val jsCode = "sendMessage(\"${errortext}\")";
 //                        println(jsCode);
 //                        webView.evaluateJavascript(jsCode, null)
                         dialog.dismiss()
-                    }
-                    else{
+                    } else {
 
                         println(sanitized_text)
                         println(ftext);
-                        Transcribetext=sanitized_text
-                        fileHandler.createAndWriteToFile("showpopup else Transcribetext"+Transcribetext,fileName)
+                        Transcribetext = sanitized_text
+                        fileHandler.createAndWriteToFile(
+                            "showpopup else Transcribetext" + Transcribetext,
+                            fileName
+                        )
 //                        val jsCode = "sendMessage(\"${ftext}\")";
 //                        println(jsCode);
 //                        webView.evaluateJavascript(jsCode, null)
@@ -1468,51 +1620,26 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-//                if(sanitized_text!=ftext.toLowerCase())
-//                {
-//                    println("fdjvnjbfhvbudvdhdhfvbhdfhfudvdfbvufbvhvudb 2")
-//                    println(sanitized_text)
-//                    println(ftext);
-//                    var errortext="Exclude inappropriate words for interpretation."
-//                    val jsCode = "sendMessage(\"${errortext}\")";
-//                    println(jsCode);
-//                    webView.evaluateJavascript(jsCode, null)
-//                    dialog.dismiss()
-//                }
-//                else{
-//
-//                    println(sanitized_text)
-//                    println(ftext);
-//                    val jsCode = "sendMessage(\"${ftext}\")";
-//                    println(jsCode);
-//                    webView.evaluateJavascript(jsCode, null)
-//                    dialog.dismiss()
-//                }
-
+                // Do something with the new text
+                dialog.dismiss()
             }
-
-            // Handle the Ok button click
-
-//            val msg=removeQuotes(msg)+"thankyou";
-
-            // Do something with the new text
-             dialog.dismiss()
-        }
-        cancelButton.setOnClickListener {
             dialog.dismiss()
         }
-
-        fun showLanguageNotSupportedDialog(context: Context) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-            val builder = AlertDialog.Builder(this)
-            val layout = layoutInflater.inflate(R.layout.language_support_alert, null)
-            val okButoon: Button = layout.findViewById(R.id.okButton);
-            builder.setView(layout)
-            val dialog = builder.create();
-            okButoon.setOnClickListener {
-                dialog.dismiss();
+            cancelButton.setOnClickListener {
+                dialog.dismiss()
             }
-            dialog.show();
+
+            fun showLanguageNotSupportedDialog(context: Context) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                val builder = AlertDialog.Builder(this)
+                val layout = layoutInflater.inflate(R.layout.language_support_alert, null)
+                val okButoon: Button = layout.findViewById(R.id.okButton);
+                builder.setView(layout)
+                val dialog = builder.create();
+                okButoon.setOnClickListener {
+                    dialog.dismiss();
+                }
+                dialog.show();
+            }
         }
-    }
 }

@@ -103,13 +103,13 @@ class Signin_page : AppCompatActivity() {
         println(config.smallestScreenWidthDp);
         //setContentView(com.example.aiish.R.layout.signup_page)
         //config.smallestScreenWidthDp >= 600
-        if (config.smallestScreenWidthDp >= 600) {
-            setContentView(com.example.aiish.R.layout.signup_tablet)
+       // if (config.smallestScreenWidthDp >= 600) {
+      //      setContentView(com.example.aiish.R.layout.signup_tablet)
 //            setContentView(R.layout.main_activity_tablet)
-        } else {
+//        } else {
               setContentView(com.example.aiish.R.layout.signup_page)
 //            setContentView(R.layout.main_activity)
-        }
+//        }
       //  setContentView(R.layout.signup_page)
         secureTokenManager = SecureTokenManager(this)
        

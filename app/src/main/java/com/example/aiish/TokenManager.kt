@@ -24,6 +24,7 @@ class SecureTokenManager(private val context: Context) {
 
     @SuppressLint("SuspiciousIndentation")
     fun saveToken(token: String) {
+        Globals.token=token;
         println("xsssssssssssssssssssssssssssxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         println(token)
        // val cipher = getCipher()
@@ -38,6 +39,7 @@ class SecureTokenManager(private val context: Context) {
     }
 
     fun loadToken(): String? {
+
         val encodedToken = sharedPreferences.getString("secure_token", null)
         return encodedToken;
 
@@ -55,6 +57,7 @@ class SecureTokenManager(private val context: Context) {
 
     @SuppressLint("SuspiciousIndentation")
     fun saveId(id: String) {
+        Globals.deviceId=id;
         println("ID Saved: $id")
         // Additional logic for encryption if needed
         sharedPreferences.edit().putString("secure_id", id).apply()
@@ -69,6 +72,7 @@ class SecureTokenManager(private val context: Context) {
 
     @SuppressLint("SuspiciousIndentation")
     fun saveEmail(email: String) {
+        Globals.email=email;
         println("Email Saved: $email")
         // Additional logic for encryption if needed
         sharedPreferences.edit().putString("secure_email", email).apply()
